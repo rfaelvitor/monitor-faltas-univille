@@ -78,9 +78,20 @@ Em **Settings → Secrets and variables → Actions → Variables** você pode c
 
 Para mudar o horário, edite a linha `cron` em `.github/workflows/monitor.yml` (o horário é em UTC, 3 horas a mais que Brasília).
 
-## Rodar no seu computador
+## Se o login esbarrar no reCAPTCHA (rodar no seu computador)
 
-Útil pra testar ou se o GitHub der problema com o login (veja "Limitações").
+O portal tem reCAPTCHA invisível do Google. Dos servidores do GitHub ele costuma pedir desafio de imagem, e aí o login falha (você recebe um e-mail de erro). A solução é deixar o GitHub mandar o trabalho pro **seu computador**, que tem IP residencial e passa sem desafio. Tudo continua igual: agendamento, secrets, e-mail e painel. Só a verificação muda de lugar.
+
+1. No repositório: **Settings → Actions → Runners → New self-hosted runner**, escolha o seu sistema (Windows, Linux ou macOS)
+2. Siga os comandos que o GitHub mostra (baixar, `config.cmd`/`config.sh` e rodar). No Windows, abra o PowerShell numa pasta tipo `C:\actions-runner`. Quando perguntar se quer rodar como serviço, responda **Y**: assim ele liga junto com o computador
+3. Em **Settings → Secrets and variables → Actions → Variables**, crie `RUNNER` com o valor `self-hosted`
+4. Rode o workflow de novo pela aba Actions
+
+Precisa ter Python 3 instalado no computador. Se ele estiver desligado no horário, o GitHub segura a execução na fila por até 24 horas e roda assim que o computador ligar.
+
+## Rodar manualmente no seu computador
+
+Útil pra testar ou depurar.
 
 ```bash
 git clone https://github.com/SEU_USUARIO/NOME_DO_REPOSITORIO.git
@@ -133,7 +144,7 @@ Rodar os testes: `pip install -r requirements-dev.txt && python -m pytest`
 
 ## Limitações
 
-- **reCAPTCHA no login.** O portal usa reCAPTCHA invisível do Google. Normalmente passa direto, mas às vezes o Google desconfia de IPs de servidor (como os do GitHub) e pede um desafio de imagem. O script não tenta burlar isso: ele para e te manda um e-mail de erro. Se acontecer sempre, rode no seu computador com o agendador do sistema (Agendador de Tarefas no Windows, cron no Linux/Mac)
+- **reCAPTCHA no login.** O Google desconfia de IPs de servidor (como os do GitHub) e pede desafio de imagem. O script não tenta burlar isso: ele para e te manda um e-mail de erro. A saída é o runner no seu computador (seção acima)
 - **Mudança de layout.** Se a Univille mudar o portal, a leitura pode quebrar. Aí chega um e-mail de erro e é preciso ajustar o `parser.py`
 - **Faltas justificadas** aparecem no painel mas não são descontadas do total, porque não está claro como o portal já as considera
 - **Agendamento do GitHub.** Em horários de pico o GitHub pode atrasar ou pular execuções agendadas. E em repositório sem nenhum commit por 60 dias, ele desativa o agendamento (é só reativar na aba Actions). Se quiser garantia, use um serviço como o cron-job.org chamando o `workflow_dispatch`

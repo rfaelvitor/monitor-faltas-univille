@@ -8,8 +8,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: monitor-faltas
@@ -17,23 +15,25 @@ concurrency:
 
 jobs:
   verificar:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+    # padrão: servidor do GitHub. Se o login esbarrar no reCAPTCHA, crie a variável
+    # RUNNER=self-hosted e rode num computador seu (veja o README)
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
       - name: Instalar dependências
         run: |
-          pip install -r requirements.txt
-          python -m playwright install --with-deps chromium
+          python -m pip install -r requirements.txt
+          python -m playwright install chromium
+
+      - name: Dependências do sistema (Linux)
+        if: runner.os == 'Linux'
+        run: python -m playwright install-deps chromium
 
       - name: Verificar faltas
         env:
@@ -48,8 +48,31 @@ jobs:
           NIVEIS_ALERTA: ${{ vars.NIVEIS_ALERTA }}
           LIMITES_ESPECIFICOS: ${{ vars.LIMITES_ESPECIFICOS }}
           SEMESTRE: ${{ vars.SEMESTRE }}
+          HEADLESS: ${{ vars.HEADLESS }}
           LOG_DETALHADO: ${{ vars.LOG_DETALHADO }}
+          PYTHONUTF8: "1"
         run: python -m faltas
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: painel
+          path: site/
+          retention-days: 1
+
+  publicar:
+    needs: verificar
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: painel
+          path: site
 
       - uses: actions/configure-pages@v5
 
