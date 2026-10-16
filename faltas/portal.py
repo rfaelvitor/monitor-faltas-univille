@@ -121,9 +121,19 @@ class Portal:
         )
 
     def home(self):
-        html = self.get(URL_HOME)
+        # a lista de disciplinas da home é montada por JavaScript, então lê a página renderizada
+        p = self.page
+        if not ("Meu Espa" in p.title() or p.locator(".item-community").count()):
+            p.goto(URL_HOME, wait_until="domcontentloaded", timeout=60_000)
+        try:
+            p.wait_for_selector(".item-community", timeout=30_000)
+        except PWTimeout:
+            pass
+        html = p.content()
         if parser.tem_formulario_login(html):
             raise ErroLogin("Sessão perdida logo após o login")
+        if ".item-community" not in html and "item-community" not in html:
+            print(f"Home sem disciplinas: título {p.title()!r}, {len(html)} bytes")
         return html
 
     def professores(self, slug):
