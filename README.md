@@ -87,7 +87,7 @@ O portal tem reCAPTCHA invisível do Google. Dos servidores do GitHub ele costum
 3. Em **Settings → Secrets and variables → Actions → Variables**, crie `RUNNER` com o valor `self-hosted`
 4. Rode o workflow de novo pela aba Actions
 
-Precisa ter Python 3 instalado no computador. Se ele estiver desligado no horário, o GitHub segura a execução na fila por até 24 horas e roda assim que o computador ligar.
+Não precisa instalar Python: o workflow baixa um Python portátil sozinho. Se o computador estiver desligado no horário, o GitHub segura a execução na fila por até 24 horas e roda assim que o computador ligar.
 
 ## Rodar manualmente no seu computador
 
