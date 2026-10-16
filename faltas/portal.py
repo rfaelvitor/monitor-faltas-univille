@@ -36,10 +36,11 @@ def _decodificar(resposta):
 
 
 class Portal:
-    def __init__(self, usuario, senha, headless=True):
+    def __init__(self, usuario, senha, headless=True, espera_captcha=0):
         self.usuario = usuario
         self.senha = senha
         self.headless = headless
+        self.espera_captcha = espera_captcha
 
     def __enter__(self):
         self._pw = sync_playwright().start()
@@ -82,7 +83,13 @@ class Portal:
             try:
                 if p.locator(".item-community").count() or "Meu Espa" in p.title():
                     return
-                desafio_apareceu = desafio_apareceu or self._desafio_na_tela()
+                if not desafio_apareceu and self._desafio_na_tela():
+                    desafio_apareceu = True
+                    if self.espera_captcha:
+                        # não resolve nada sozinho: só dá tempo de a pessoa resolver na janela
+                        print(f"Desafio de imagens na tela, esperando até {self.espera_captcha}s alguém resolver")
+                        p.bring_to_front()
+                        prazo = time.time() + self.espera_captcha
             except Exception:
                 pass  # página trocando no meio da checagem
             p.wait_for_timeout(1000)

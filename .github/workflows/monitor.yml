@@ -2,8 +2,9 @@ name: Monitor de faltas
 
 on:
   schedule:
-    # 23:47 UTC = 20:47 em Brasília, todo dia (minuto quebrado pra fugir da fila das horas cheias)
-    - cron: "47 23 * * *"
+    # de hora em hora; só a primeira verificação bem-sucedida do dia faz o trabalho,
+    # as outras terminam em segundos. Com runner no seu PC isso vira "roda quando ligar o PC"
+    - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -19,6 +20,8 @@ jobs:
     # RUNNER=self-hosted e rode num computador seu (veja o README)
     runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
+    outputs:
+      rodou: ${{ steps.verificar.outputs.rodou }}
     steps:
       - uses: actions/checkout@v4
 
@@ -40,6 +43,7 @@ jobs:
         run: uv run --python 3.12 --with-requirements requirements.txt python -m playwright install-deps chromium
 
       - name: Verificar faltas
+        id: verificar
         env:
           UNIVILLE_USUARIO: ${{ secrets.UNIVILLE_USUARIO }}
           UNIVILLE_SENHA: ${{ secrets.UNIVILLE_SENHA }}
@@ -54,10 +58,13 @@ jobs:
           SEMESTRE: ${{ vars.SEMESTRE }}
           HEADLESS: ${{ vars.HEADLESS }}
           LOG_DETALHADO: ${{ vars.LOG_DETALHADO }}
+          UMA_VEZ_POR_DIA: "1"
+          FORCAR: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
           PYTHONUTF8: "1"
         run: uv run --python 3.12 --with-requirements requirements.txt python -m faltas
 
       - uses: actions/upload-artifact@v4
+        if: steps.verificar.outputs.rodou == 'true'
         with:
           name: painel
           path: site/
@@ -65,6 +72,7 @@ jobs:
 
   publicar:
     needs: verificar
+    if: needs.verificar.outputs.rodou == 'true'
     runs-on: ubuntu-latest
     permissions:
       pages: write

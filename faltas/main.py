@@ -1,5 +1,6 @@
 """Ponto de entrada: python -m faltas"""
 import json
+import os
 import shutil
 import sys
 import traceback
@@ -47,7 +48,7 @@ def carregar_estado_anterior(cfg):
 
 
 def coletar(cfg):
-    with Portal(cfg.usuario, cfg.senha, headless=cfg.headless) as portal:
+    with Portal(cfg.usuario, cfg.senha, headless=cfg.headless, espera_captcha=cfg.espera_captcha) as portal:
         portal.login()
         disciplinas = parser.filtrar_semestre(parser.ler_disciplinas(portal.home()), cfg.semestre)
         if not disciplinas:
@@ -117,10 +118,22 @@ def resumo_log(cfg, disciplinas):
             print(f"  {d['sigla']:<10} {d['b1']['faltas']:>3} + {d['b2']['faltas']:>3} = {d['total']:>3}/{d['limite']}  {d['status']}")
 
 
+def ja_verificado_hoje(anterior, agora):
+    try:
+        return datetime.fromisoformat(anterior["atualizado_em"]).astimezone(FUSO).date() == agora.date()
+    except Exception:
+        return False
+
+
 def executar():
+    """Roda a verificação. Devolve False se pulou (já tinha rodado hoje)."""
     cfg = Config.carregar()
     agora = datetime.now(FUSO)
     anterior = carregar_estado_anterior(cfg)
+
+    if cfg.uma_vez_por_dia and not cfg.forcar and anterior and ja_verificado_hoje(anterior, agora):
+        print("Já verificado hoje, nada a fazer")
+        return False
 
     disciplinas = coletar(cfg)
     semestre = disciplinas[0]["semestre"] if disciplinas else None
@@ -155,19 +168,49 @@ def executar():
     }
     publicar(cfg, dados)
     print("Painel gerado em", cfg.pasta_saida)
+    return True
+
+
+def _saida_github(nome, valor):
+    arq = os.environ.get("GITHUB_OUTPUT")
+    if arq:
+        with open(arq, "a", encoding="utf-8") as f:
+            f.write(f"{nome}={valor}\n")
+
+
+def _pode_avisar_erro_hoje():
+    """No máximo um e-mail de erro por dia (o workflow pode tentar de hora em hora)."""
+    marca = Path.home() / ".monitor-faltas" / "ultimo-erro.txt"
+    hoje = datetime.now(FUSO).date().isoformat()
+    try:
+        if marca.read_text().strip() == hoje:
+            return False
+    except OSError:
+        pass
+    try:
+        marca.parent.mkdir(parents=True, exist_ok=True)
+        marca.write_text(hoje)
+    except OSError:
+        pass
+    return True
 
 
 def main():
     try:
-        executar()
+        rodou = executar()
+        _saida_github("rodou", "true" if rodou else "false")
     except SystemExit:
         raise
     except Exception as e:
         traceback.print_exc()
+        _saida_github("rodou", "false")
         try:
-            cfg = Config.carregar()
-            assunto, corpo = email_alerta.montar_erro(f"{type(e).__name__}: {e}")
-            email_alerta.enviar(cfg, assunto, corpo)
+            if _pode_avisar_erro_hoje():
+                cfg = Config.carregar()
+                assunto, corpo = email_alerta.montar_erro(f"{type(e).__name__}: {e}")
+                email_alerta.enviar(cfg, assunto, corpo)
+            else:
+                print("Erro já avisado por e-mail hoje")
         except Exception:
             pass
         sys.exit(1)

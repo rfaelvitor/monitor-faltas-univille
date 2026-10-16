@@ -62,7 +62,7 @@ Em uns 2 minutos você recebe um e-mail "Monitor ativado" com a situação de to
 https://SEU_USUARIO.github.io/NOME_DO_REPOSITORIO/
 ```
 
-Depois disso ele roda sozinho todo dia às 20:47 (horário de Brasília).
+Depois disso ele roda sozinho. O GitHub dispara de hora em hora, mas só a primeira verificação bem-sucedida de cada dia faz o trabalho; as outras terminam em segundos. Disparar manualmente pela aba Actions sempre verifica de novo.
 
 ## Configurações opcionais
 
@@ -76,7 +76,10 @@ Em **Settings → Secrets and variables → Actions → Variables** você pode c
 | `SEMESTRE` | o mais recente | Forçar um semestre, ex: `2026-2` |
 | `URL_PAINEL` | GitHub Pages do repo | Se usar outro endereço pro painel |
 
-Para mudar o horário, edite a linha `cron` em `.github/workflows/monitor.yml` (o horário é em UTC, 3 horas a mais que Brasília).
+| `HEADLESS` | `1` | `0` abre o navegador visível (precisa de runner na sua sessão, veja abaixo) |
+| `ESPERA_CAPTCHA` | `240` com navegador visível | Segundos que o script espera você resolver o desafio de imagens |
+
+Para mudar a frequência, edite a linha `cron` em `.github/workflows/monitor.yml` (o horário é em UTC, 3 horas a mais que Brasília).
 
 ## Se o login esbarrar no reCAPTCHA (rodar no seu computador)
 

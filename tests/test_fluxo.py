@@ -91,3 +91,14 @@ def test_nova_falta_cruza_nivel(ambiente):
     assert len(enviados) == 2 and "ESD_I: 18 faltas, no limite" in enviados[1]
     hist = [h for h in estado(pasta)["historico"] if h["sigla"] == "ESD_I"]
     assert [h["total"] for h in hist] == [16, 18]
+
+
+def test_uma_vez_por_dia_pula_segunda_execucao(ambiente, monkeypatch):
+    _, enviados = ambiente
+    monkeypatch.setenv("UMA_VEZ_POR_DIA", "1")
+    assert main.executar() is True
+    PortalFalso.faltas_extra = 2
+    assert main.executar() is False
+    monkeypatch.setenv("FORCAR", "1")
+    assert main.executar() is True
+    assert len(enviados) == 2

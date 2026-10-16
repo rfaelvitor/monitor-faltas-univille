@@ -56,12 +56,16 @@ class Config:
     email_destino: str | None = None
     limites_especificos: dict = field(default_factory=dict)
     headless: bool = True
+    espera_captcha: int = 0
+    uma_vez_por_dia: bool = False
+    forcar: bool = False
     log_detalhado: bool = False
     pasta_saida: str = "site"
 
     @classmethod
     def carregar(cls):
         gmail = _env("GMAIL_USUARIO")
+        headless = _env("HEADLESS", "1") != "0"
         return cls(
             usuario=_env("UNIVILLE_USUARIO", obrigatorio=True),
             senha=_env("UNIVILLE_SENHA", obrigatorio=True),
@@ -74,7 +78,11 @@ class Config:
             gmail_senha_app=_env("GMAIL_SENHA_APP"),
             email_destino=_env("EMAIL_DESTINO", gmail),
             limites_especificos=_dict_int(_env("LIMITES_ESPECIFICOS", "")),
-            headless=_env("HEADLESS", "1") != "0",
+            headless=headless,
+            # com navegador visível dá tempo de a pessoa resolver o desafio de imagens
+            espera_captcha=int(_env("ESPERA_CAPTCHA", "0" if headless else "240")),
+            uma_vez_por_dia=_env("UMA_VEZ_POR_DIA", "0") == "1",
+            forcar=_env("FORCAR", "0") == "1",
             log_detalhado=_env("LOG_DETALHADO", "0") == "1",
             pasta_saida=_env("PASTA_SAIDA", "site"),
         )
