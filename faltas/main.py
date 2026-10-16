@@ -1,0 +1,177 @@
+"""Ponto de entrada: python -m faltas"""
+import json
+import shutil
+import sys
+import traceback
+import urllib.request
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+from . import cripto, email_alerta, parser, regras
+from .config import Config
+from .portal import Portal
+
+FUSO = ZoneInfo("America/Sao_Paulo")
+RAIZ = Path(__file__).resolve().parent.parent
+MODELO_PAINEL = RAIZ / "painel" / "index.html"
+
+
+def carregar_estado_anterior(cfg):
+    """Busca o último resultado: primeiro no disco (uso local), depois no painel publicado."""
+    local = Path(cfg.pasta_saida) / "data.enc.json"
+    local_aberto = Path(cfg.pasta_saida) / "data.json"
+    pacote = None
+    if cfg.senha_painel and local.exists():
+        pacote = json.loads(local.read_text("utf-8"))
+    elif not cfg.senha_painel and local_aberto.exists():
+        return json.loads(local_aberto.read_text("utf-8"))
+    elif cfg.url_painel:
+        nome = "data.enc.json" if cfg.senha_painel else "data.json"
+        url = cfg.url_painel.rstrip("/") + "/" + nome
+        try:
+            with urllib.request.urlopen(url, timeout=20) as r:
+                pacote = json.loads(r.read().decode("utf-8"))
+        except Exception as e:
+            print(f"Sem estado anterior publicado ({type(e).__name__}), tratando como primeira execução")
+            return None
+        if not cfg.senha_painel:
+            return pacote
+    if pacote is None:
+        return None
+    try:
+        return cripto.decifrar(pacote, cfg.senha_painel)
+    except Exception:
+        print("Não consegui decifrar o estado anterior (SENHA_PAINEL mudou?), começando do zero")
+        return None
+
+
+def coletar(cfg):
+    with Portal(cfg.usuario, cfg.senha, headless=cfg.headless) as portal:
+        portal.login()
+        disciplinas = parser.filtrar_semestre(parser.ler_disciplinas(portal.home()), cfg.semestre)
+        if not disciplinas:
+            raise RuntimeError("Nenhuma disciplina encontrada na home (layout mudou?)")
+
+        resultado = []
+        for d in disciplinas:
+            melhor = None
+            for prof in portal.professores(d["codigo"]):
+                url, freq = portal.frequencia(d["codigo"], prof["codigo"])
+                total = freq["b1"]["faltas"] + freq["b2"]["faltas"]
+                tem_dados = freq["b1"]["aulas"] or freq["b2"]["aulas"]
+                candidato = {"professor": prof, "url": url, "freq": freq, "total": total, "tem_dados": bool(tem_dados)}
+                # vários professores: fica com o maior total (pior caso)
+                if melhor is None or (candidato["tem_dados"], total) > (melhor["tem_dados"], melhor["total"]):
+                    melhor = candidato
+
+            limite = cfg.limite_de(d["sigla"])
+            if melhor is None:
+                item = {**d, "limite": limite, "total": 0, "sem_dados": True, "url": None,
+                        "docente": "", "b1": parser._bimestre_vazio(), "b2": parser._bimestre_vazio()}
+            else:
+                docente = melhor["freq"]["b1"]["docente"] or melhor["freq"]["b2"]["docente"] or melhor["professor"]["nome"]
+                item = {**d, "limite": limite, "total": melhor["total"], "sem_dados": not melhor["tem_dados"],
+                        "url": "https://www.univille.edu.br" + melhor["url"], "docente": docente,
+                        "b1": melhor["freq"]["b1"], "b2": melhor["freq"]["b2"]}
+            item["status"] = regras.status_de(item["total"], limite, cfg.niveis)
+            item["margem"] = regras.margem(item["total"], limite)
+            resultado.append(item)
+
+    ordem = ["reprovado", "limite", "alerta", "atencao", "ok"]
+    resultado.sort(key=lambda x: (ordem.index(x["status"]), -x["total"], x["nome"]))
+    return resultado
+
+
+def atualizar_historico(anterior, disciplinas, hoje):
+    historico = list((anterior or {}).get("historico", []))
+    ultimos = {}
+    for h in historico:
+        ultimos[h["codigo"]] = h["total"]
+    for d in disciplinas:
+        if ultimos.get(d["codigo"]) != d["total"]:
+            historico.append({"data": hoje, "codigo": d["codigo"], "sigla": d["sigla"], "total": d["total"]})
+    return historico[-500:]
+
+
+def publicar(cfg, dados):
+    saida = Path(cfg.pasta_saida)
+    saida.mkdir(parents=True, exist_ok=True)
+    shutil.copy(MODELO_PAINEL, saida / "index.html")
+    if cfg.senha_painel:
+        (saida / "data.enc.json").write_text(json.dumps(cripto.cifrar(dados, cfg.senha_painel)), "utf-8")
+        (saida / "data.json").unlink(missing_ok=True)
+    else:
+        print("AVISO: SENHA_PAINEL não definida, o painel vai ser publicado SEM criptografia")
+        (saida / "data.json").write_text(json.dumps(dados, ensure_ascii=False, indent=1), "utf-8")
+        (saida / "data.enc.json").unlink(missing_ok=True)
+
+
+def resumo_log(cfg, disciplinas):
+    contagem = {}
+    for d in disciplinas:
+        contagem[d["status"]] = contagem.get(d["status"], 0) + 1
+    print(f"{len(disciplinas)} disciplinas verificadas: " + ", ".join(f"{k}={v}" for k, v in contagem.items()))
+    if cfg.log_detalhado:
+        for d in disciplinas:
+            print(f"  {d['sigla']:<10} {d['b1']['faltas']:>3} + {d['b2']['faltas']:>3} = {d['total']:>3}/{d['limite']}  {d['status']}")
+
+
+def executar():
+    cfg = Config.carregar()
+    agora = datetime.now(FUSO)
+    anterior = carregar_estado_anterior(cfg)
+
+    disciplinas = coletar(cfg)
+    semestre = disciplinas[0]["semestre"] if disciplinas else None
+    resumo_log(cfg, disciplinas)
+
+    enviados = dict((anterior or {}).get("alertas_enviados", {}))
+    primeira_vez = anterior is None or (anterior.get("semestre") != semestre)
+    novos, enviados_novo = regras.calcular_alertas(disciplinas, enviados, cfg.niveis)
+
+    if primeira_vez:
+        assunto, corpo = email_alerta.montar_boas_vindas(disciplinas, cfg.url_painel)
+        ok = email_alerta.enviar(cfg, assunto, corpo)
+        print("Primeira execução do semestre: resumo inicial" + (" enviado" if ok else " não enviado"))
+    elif novos:
+        assunto, corpo = email_alerta.montar_alerta(novos, disciplinas, cfg.url_painel)
+        ok = email_alerta.enviar(cfg, assunto, corpo)
+        print(f"{len(novos)} alerta(s) novo(s)")
+        if not ok and cfg.email_configurado:
+            enviados_novo = enviados  # tenta de novo na próxima
+    else:
+        print("Nenhum nível novo atingido")
+
+    dados = {
+        "versao": 1,
+        "atualizado_em": agora.isoformat(timespec="minutes"),
+        "semestre": semestre,
+        "niveis": cfg.niveis,
+        "limite_padrao": cfg.limite,
+        "disciplinas": disciplinas,
+        "alertas_enviados": enviados_novo,
+        "historico": atualizar_historico(None if primeira_vez else anterior, disciplinas, agora.date().isoformat()),
+    }
+    publicar(cfg, dados)
+    print("Painel gerado em", cfg.pasta_saida)
+
+
+def main():
+    try:
+        executar()
+    except SystemExit:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        try:
+            cfg = Config.carregar()
+            assunto, corpo = email_alerta.montar_erro(f"{type(e).__name__}: {e}")
+            email_alerta.enviar(cfg, assunto, corpo)
+        except Exception:
+            pass
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

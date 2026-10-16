@@ -1,0 +1,61 @@
+name: Monitor de faltas
+
+on:
+  schedule:
+    # 23:47 UTC = 20:47 em Brasília, todo dia (minuto quebrado pra fugir da fila das horas cheias)
+    - cron: "47 23 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: monitor-faltas
+  cancel-in-progress: false
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependências
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Verificar faltas
+        env:
+          UNIVILLE_USUARIO: ${{ secrets.UNIVILLE_USUARIO }}
+          UNIVILLE_SENHA: ${{ secrets.UNIVILLE_SENHA }}
+          SENHA_PAINEL: ${{ secrets.SENHA_PAINEL }}
+          GMAIL_USUARIO: ${{ secrets.GMAIL_USUARIO }}
+          GMAIL_SENHA_APP: ${{ secrets.GMAIL_SENHA_APP }}
+          EMAIL_DESTINO: ${{ secrets.EMAIL_DESTINO }}
+          URL_PAINEL: ${{ vars.URL_PAINEL || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
+          LIMITE_FALTAS: ${{ vars.LIMITE_FALTAS }}
+          NIVEIS_ALERTA: ${{ vars.NIVEIS_ALERTA }}
+          LIMITES_ESPECIFICOS: ${{ vars.LIMITES_ESPECIFICOS }}
+          SEMESTRE: ${{ vars.SEMESTRE }}
+          LOG_DETALHADO: ${{ vars.LOG_DETALHADO }}
+        run: python -m faltas
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
