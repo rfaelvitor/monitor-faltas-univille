@@ -2,9 +2,9 @@ name: Monitor de faltas
 
 on:
   schedule:
-    # de hora em hora; só a primeira verificação bem-sucedida do dia faz o trabalho,
-    # as outras terminam em segundos. Com runner no seu PC isso vira "roda quando ligar o PC"
-    - cron: "17 * * * *"
+    # de hora em hora, das 7h17 às 20h17 de Brasília (10-23 UTC); só a primeira verificação
+    # bem-sucedida do dia faz o trabalho. Com runner no seu PC isso vira "roda quando ligar o PC"
+    - cron: "17 10-23 * * *"
   workflow_dispatch:
 
 permissions:

@@ -62,7 +62,7 @@ Em uns 2 minutos você recebe um e-mail "Monitor ativado" com a situação de to
 https://SEU_USUARIO.github.io/NOME_DO_REPOSITORIO/
 ```
 
-Depois disso ele roda sozinho. O GitHub dispara de hora em hora, mas só a primeira verificação bem-sucedida de cada dia faz o trabalho; as outras terminam em segundos. Disparar manualmente pela aba Actions sempre verifica de novo.
+Depois disso ele roda sozinho. O GitHub dispara de hora em hora entre 7h e 20h (Brasília), mas só a primeira verificação bem-sucedida de cada dia faz o trabalho; as outras terminam em segundos. Disparar manualmente pela aba Actions sempre verifica de novo.
 
 ## Configurações opcionais
 
