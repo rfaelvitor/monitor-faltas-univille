@@ -15,10 +15,6 @@ from . import parser
 
 BASE = "https://www.univille.edu.br"
 URL_HOME = f"{BASE}/account/MySpace.html"
-USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
-)
 
 
 class ErroLogin(Exception):
@@ -47,13 +43,8 @@ class Portal:
 
     def __enter__(self):
         self._pw = sync_playwright().start()
-        self._browser = self._pw.chromium.launch(
-            headless=self.headless,
-            args=["--disable-blink-features=AutomationControlled"],
-        )
-        self._ctx = self._browser.new_context(
-            user_agent=USER_AGENT, locale="pt-BR", timezone_id="America/Sao_Paulo"
-        )
+        self._browser = self._pw.chromium.launch(headless=self.headless)
+        self._ctx = self._browser.new_context(locale="pt-BR", timezone_id="America/Sao_Paulo")
         self.page = self._ctx.new_page()
         return self
 
@@ -85,24 +76,42 @@ class Portal:
         p.wait_for_timeout(1500)  # deixa o script do reCAPTCHA carregar
         p.click("#loginForm input[type=submit]")
 
+        desafio_apareceu = False
         prazo = time.time() + 60
         while time.time() < prazo:
-            if p.locator(".item-community").count() or "Meu Espa" in p.title():
-                return
-            # desafio visível do reCAPTCHA (janela com imagens)
-            desafio = p.locator("iframe[src*='recaptcha/api2/bframe']")
-            if desafio.count() and desafio.first.is_visible():
-                raise DesafioCaptcha(
-                    "O Google pediu um desafio de imagem no login (reCAPTCHA). "
-                    "Isso costuma acontecer com IPs de servidor; tente de novo mais tarde "
-                    "ou rode o monitor no seu computador (README)."
-                )
+            try:
+                if p.locator(".item-community").count() or "Meu Espa" in p.title():
+                    return
+                desafio_apareceu = desafio_apareceu or self._desafio_na_tela()
+            except Exception:
+                pass  # página trocando no meio da checagem
             p.wait_for_timeout(1000)
 
-        html = p.content()
-        if parser.tem_formulario_login(html):
+        print(f"Login parado em: {p.title()!r} (desafio visível: {desafio_apareceu})")
+        if desafio_apareceu:
+            raise DesafioCaptcha(
+                "O Google pediu um desafio de imagem no login (reCAPTCHA). "
+                "Isso costuma acontecer com IPs de servidor; tente de novo mais tarde "
+                "ou rode o monitor no seu computador (README)."
+            )
+        if parser.tem_formulario_login(p.content()):
             raise ErroLogin("Login não concluído: confira UNIVILLE_USUARIO e UNIVILLE_SENHA")
         raise ErroLogin("Login demorou demais para responder")
+
+    def _desafio_na_tela(self):
+        # o iframe do desafio sempre existe, escondido fora da tela; só conta se o Google mostrar
+        return self.page.evaluate(
+            """() => [...document.querySelectorAll("iframe[src*='recaptcha/api2/bframe']")].some(f => {
+                let el = f;
+                while (el && el !== document.body) {
+                    const s = getComputedStyle(el);
+                    if (s.visibility === 'hidden' || s.display === 'none' || parseFloat(s.opacity) === 0) return false;
+                    el = el.parentElement;
+                }
+                const r = f.getBoundingClientRect();
+                return r.width > 50 && r.height > 50 && r.bottom > 0 && r.top < innerHeight;
+            })"""
+        )
 
     def home(self):
         html = self.get(URL_HOME)
