@@ -48,7 +48,8 @@ def carregar_estado_anterior(cfg):
 
 
 def coletar(cfg):
-    with Portal(cfg.usuario, cfg.senha, headless=cfg.headless, espera_captcha=cfg.espera_captcha) as portal:
+    with Portal(cfg.usuario, cfg.senha, headless=cfg.headless, espera_captcha=cfg.espera_captcha,
+                perfil=cfg.perfil) as portal:
         portal.login()
         disciplinas = parser.filtrar_semestre(parser.ler_disciplinas(portal.home()), cfg.semestre)
         if not disciplinas:

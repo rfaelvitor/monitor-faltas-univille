@@ -61,6 +61,7 @@ class Config:
     forcar: bool = False
     log_detalhado: bool = False
     pasta_saida: str = "site"
+    perfil: str | None = None
 
     @classmethod
     def carregar(cls):
@@ -85,6 +86,8 @@ class Config:
             forcar=_env("FORCAR", "0") == "1",
             log_detalhado=_env("LOG_DETALHADO", "0") == "1",
             pasta_saida=_env("PASTA_SAIDA", "site"),
+            # vazio = navegador novo a cada execução (padrão no GitHub); no seu PC use ~/.monitor-faltas/perfil
+            perfil=_env("PERFIL_NAVEGADOR"),
         )
 
     def limite_de(self, sigla):

@@ -7,6 +7,7 @@ o script para e avisa (não tenta resolver captcha).
 """
 import re
 import time
+from pathlib import Path
 
 from playwright.sync_api import TimeoutError as PWTimeout
 from playwright.sync_api import sync_playwright
@@ -36,7 +37,8 @@ def _decodificar(resposta):
 
 
 class Portal:
-    def __init__(self, usuario, senha, headless=True, espera_captcha=0):
+    def __init__(self, usuario, senha, headless=True, espera_captcha=0, perfil=None):
+        self.perfil = perfil
         self.usuario = usuario
         self.senha = senha
         self.headless = headless
@@ -44,13 +46,22 @@ class Portal:
 
     def __enter__(self):
         self._pw = sync_playwright().start()
-        self._browser = self._pw.chromium.launch(headless=self.headless)
-        self._ctx = self._browser.new_context(locale="pt-BR", timezone_id="America/Sao_Paulo")
-        self.page = self._ctx.new_page()
+        opcoes = dict(locale="pt-BR", timezone_id="America/Sao_Paulo")
+        if self.perfil:
+            # perfil persistente: guarda cookies e histórico entre execuções, como um navegador de uso normal.
+            # Reaproveita a sessão do portal quando ainda vale e deixa o Google menos desconfiado
+            pasta = Path(self.perfil).expanduser()
+            pasta.mkdir(parents=True, exist_ok=True)
+            self._ctx = self._pw.chromium.launch_persistent_context(str(pasta), headless=self.headless, **opcoes)
+            self._browser = None
+        else:
+            self._browser = self._pw.chromium.launch(headless=self.headless)
+            self._ctx = self._browser.new_context(**opcoes)
+        self.page = self._ctx.pages[0] if self._ctx.pages else self._ctx.new_page()
         return self
 
     def __exit__(self, *exc):
-        self._browser.close()
+        (self._browser or self._ctx).close()
         self._pw.stop()
 
     def get(self, caminho):

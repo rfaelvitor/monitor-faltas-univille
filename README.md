@@ -76,6 +76,7 @@ Em **Settings → Secrets and variables → Actions → Variables** você pode c
 | `SEMESTRE` | o mais recente | Forçar um semestre, ex: `2026-2` |
 | `URL_PAINEL` | GitHub Pages do repo | Se usar outro endereço pro painel |
 | `HEADLESS` | `1` | `0` abre o navegador visível (precisa de runner na sua sessão, veja abaixo) |
+| `PERFIL_NAVEGADOR` | vazio | Pasta de perfil do navegador (ex: `C:\\Users\\voce\\.monitor-faltas\\perfil`). Mantém cookies entre execuções: reaproveita a sessão e reduz os desafios de captcha. Só faz sentido em runner/PC seu |
 | `ESPERA_CAPTCHA` | `240` com navegador visível | Segundos que o script espera você resolver o desafio de imagens |
 
 Para mudar a frequência, edite a linha `cron` em `.github/workflows/monitor.yml` (o horário é em UTC, 3 horas a mais que Brasília).
