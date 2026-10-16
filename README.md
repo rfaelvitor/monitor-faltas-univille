@@ -75,7 +75,6 @@ Em **Settings → Secrets and variables → Actions → Variables** você pode c
 | `LIMITES_ESPECIFICOS` | vazio | Limite diferente por sigla, ex: `FDIA=20,EIXO-III=20` |
 | `SEMESTRE` | o mais recente | Forçar um semestre, ex: `2026-2` |
 | `URL_PAINEL` | GitHub Pages do repo | Se usar outro endereço pro painel |
-
 | `HEADLESS` | `1` | `0` abre o navegador visível (precisa de runner na sua sessão, veja abaixo) |
 | `ESPERA_CAPTCHA` | `240` com navegador visível | Segundos que o script espera você resolver o desafio de imagens |
 
@@ -83,14 +82,22 @@ Para mudar a frequência, edite a linha `cron` em `.github/workflows/monitor.yml
 
 ## Se o login esbarrar no reCAPTCHA (rodar no seu computador)
 
-O portal tem reCAPTCHA invisível do Google. Dos servidores do GitHub ele costuma pedir desafio de imagem, e aí o login falha (você recebe um e-mail de erro). A solução é deixar o GitHub mandar o trabalho pro **seu computador**, que tem IP residencial e passa sem desafio. Tudo continua igual: agendamento, secrets, e-mail e painel. Só a verificação muda de lugar.
+O portal tem reCAPTCHA invisível do Google. Com navegador automático e invisível (como nos servidores do GitHub) ele costuma pedir o desafio de imagens, e o login falha. O script **não tenta burlar o captcha**. A saída é rodar no seu computador com o navegador **visível**: na maioria das vezes passa direto, e quando o Google pedir as imagens você mesmo resolve na janela (o script espera até 4 minutos e faz o resto sozinho).
 
-1. No repositório: **Settings → Actions → Runners → New self-hosted runner**, escolha o seu sistema (Windows, Linux ou macOS)
-2. Siga os comandos que o GitHub mostra (baixar, `config.cmd`/`config.sh` e rodar). No Windows, abra o PowerShell numa pasta tipo `C:\actions-runner`. Quando perguntar se quer rodar como serviço, responda **Y**: assim ele liga junto com o computador
-3. Em **Settings → Secrets and variables → Actions → Variables**, crie `RUNNER` com o valor `self-hosted`
-4. Rode o workflow de novo pela aba Actions
+Para isso o GitHub manda o trabalho pro seu computador através de um *runner* (programa oficial do GitHub). Agendamento, secrets, e-mail e painel continuam iguais.
 
-Não precisa instalar Python: o workflow baixa um Python portátil sozinho. Se o computador estiver desligado no horário, o GitHub segura a execução na fila por até 24 horas e roda assim que o computador ligar.
+1. No repositório: **Settings → Actions → Runners → New self-hosted runner**, escolha o seu sistema
+2. Siga os comandos de *Download* e *Configure* que o GitHub mostra (no Windows, use o **PowerShell**, ou troque o download por `curl -L -o runner.zip URL && tar -xf runner.zip` no cmd)
+3. Quando perguntar se quer rodar como serviço, responda **N**. Serviço não consegue abrir janela na sua tela
+4. Faça o runner iniciar junto com o seu login. No Windows, crie na pasta de inicialização (`Win + R` → `shell:startup`) um arquivo `runner-faltas.cmd` com:
+   ```
+   @echo off
+   start "Runner monitor de faltas" /min cmd /c "C:\actions-runner\run.cmd"
+   ```
+5. Em **Settings → Secrets and variables → Actions → Variables**, crie `RUNNER` = `self-hosted` e `HEADLESS` = `0`
+6. Rode o workflow pela aba Actions para testar
+
+Não precisa instalar Python: o workflow baixa um Python portátil sozinho. Com o computador desligado, a execução fica na fila e roda quando você ligar e fizer login, então na prática ele verifica **uma vez por dia, ao ligar o computador**.
 
 ## Rodar manualmente no seu computador
 
