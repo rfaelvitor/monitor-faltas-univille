@@ -76,7 +76,7 @@ Em **Settings → Secrets and variables → Actions → Variables** você pode c
 | `SEMESTRE` | o mais recente | Forçar um semestre, ex: `2026-2` |
 | `URL_PAINEL` | GitHub Pages do repo | Se usar outro endereço pro painel |
 | `HEADLESS` | `1` | `0` abre o navegador visível (precisa de runner na sua sessão, veja abaixo) |
-| `PERFIL_NAVEGADOR` | vazio | Pasta de perfil do navegador (ex: `C:\\Users\\voce\\.monitor-faltas\\perfil`). Mantém cookies entre execuções: reaproveita a sessão e reduz os desafios de captcha. Só faz sentido em runner/PC seu |
+| `PERFIL_NAVEGADOR` | `~/.monitor-faltas/perfil` com navegador visível | Pasta onde o navegador guarda cookies entre execuções, como um navegador de uso normal. Reduz os desafios de captcha. `0` desliga |
 | `ESPERA_CAPTCHA` | `240` com navegador visível | Segundos que o script espera você resolver o desafio de imagens |
 
 Para mudar a frequência, edite a linha `cron` em `.github/workflows/monitor.yml` (o horário é em UTC, 3 horas a mais que Brasília).
@@ -97,6 +97,8 @@ Para isso o GitHub manda o trabalho pro seu computador através de um *runner* (
    ```
 5. Em **Settings → Secrets and variables → Actions → Variables**, crie `RUNNER` = `self-hosted` e `HEADLESS` = `0`
 6. Rode o workflow pela aba Actions para testar
+
+Com o navegador visível o script usa sempre o mesmo perfil (`~/.monitor-faltas/perfil`). O Google passa a reconhecer o navegador e pede bem menos o desafio de imagens; depois das primeiras vezes, o normal é o login passar direto. A sessão do portal em si não dá pra reaproveitar: o cookie dela some quando o navegador fecha e expira no servidor em pouco tempo.
 
 Não precisa instalar Python: o workflow baixa um Python portátil sozinho. Com o computador desligado, a execução fica na fila e roda quando você ligar e fizer login, então na prática ele verifica **uma vez por dia, ao ligar o computador**.
 

@@ -57,6 +57,7 @@ jobs:
           LIMITES_ESPECIFICOS: ${{ vars.LIMITES_ESPECIFICOS }}
           SEMESTRE: ${{ vars.SEMESTRE }}
           HEADLESS: ${{ vars.HEADLESS }}
+          PERFIL_NAVEGADOR: ${{ vars.PERFIL_NAVEGADOR }}
           LOG_DETALHADO: ${{ vars.LOG_DETALHADO }}
           UMA_VEZ_POR_DIA: "1"
           FORCAR: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}

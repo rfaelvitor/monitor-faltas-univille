@@ -42,6 +42,10 @@ def _dict_int(texto):
     return saida
 
 
+def _perfil(valor):
+    return None if not valor or valor == "0" else valor
+
+
 @dataclass
 class Config:
     usuario: str
@@ -86,8 +90,8 @@ class Config:
             forcar=_env("FORCAR", "0") == "1",
             log_detalhado=_env("LOG_DETALHADO", "0") == "1",
             pasta_saida=_env("PASTA_SAIDA", "site"),
-            # vazio = navegador novo a cada execução (padrão no GitHub); no seu PC use ~/.monitor-faltas/perfil
-            perfil=_env("PERFIL_NAVEGADOR"),
+            # navegador visível = seu PC, então guarda o perfil por padrão. "0" desliga
+            perfil=_perfil(_env("PERFIL_NAVEGADOR", "" if headless else "~/.monitor-faltas/perfil")),
         )
 
     def limite_de(self, sigla):
