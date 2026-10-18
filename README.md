@@ -57,7 +57,7 @@ O script manda e-mail pelo próprio Gmail. O Google exige uma "senha de app" (n�
 Abra o **PowerShell** (menu Iniciar → digite PowerShell) e cole, trocando `SEU_USUARIO/SEU_REPO`:
 
 ```powershell
-$env:MONITOR_REPO="SEU_USUARIO/SEU_REPO"; powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/$env:MONITOR_REPO/main/windows/instalar.ps1 | iex"
+$env:MONITOR_REPO="SEU_USUARIO/SEU_REPO"; irm "https://raw.githubusercontent.com/$env:MONITOR_REPO/main/windows/instalar.ps1" | iex
 ```
 
 Ele pergunta matrícula, senha do portal, uma senha pro painel (você inventa), Gmail, senha de app e o token, e então:

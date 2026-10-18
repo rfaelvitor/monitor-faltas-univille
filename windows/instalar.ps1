@@ -1,11 +1,10 @@
 # Instala o monitor de faltas no Agendador de Tarefas do Windows.
-# Uso (PowerShell, sem precisar de administrador):
-#   powershell -ExecutionPolicy Bypass -c "irm https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPO/main/windows/instalar.ps1 | iex"
+# Uso (PowerShell normal, sem administrador):
+#   $env:MONITOR_REPO="SEU_USUARIO/SEU_REPO"; irm https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPO/main/windows/instalar.ps1 | iex
 # Rodar de novo atualiza tudo e mantem a configuracao (.env) que ja existe.
-param(
-    [string]$Repo = $(if ($env:MONITOR_REPO) { $env:MONITOR_REPO } else { "rfaelvitor/monitor-faltas-univille" }),
-    [string]$Horario = $(if ($env:MONITOR_HORARIO) { $env:MONITOR_HORARIO } else { "08:00" })
-)
+# sem bloco param: o script roda via irm | iex
+$Repo = if ($env:MONITOR_REPO) { $env:MONITOR_REPO } else { "rfaelvitor/monitor-faltas-univille" }
+$Horario = if ($env:MONITOR_HORARIO) { $env:MONITOR_HORARIO } else { "08:00" }
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $base = Join-Path $env:USERPROFILE ".monitor-faltas"
