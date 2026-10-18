@@ -78,7 +78,9 @@ Push-Location $codigo
 Pop-Location
 
 # 5. tarefa agendada: todo dia no horario; se o PC estiver desligado, roda assim que voce ligar
-$acao = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$(Join-Path $base 'rodar.vbs')`""
+# o Explorer abre o script como se fosse um clique seu: rodando direto pelo Agendador
+# o processo fica preso no "job" da tarefa e o Chromium trava ao iniciar
+$acao = New-ScheduledTaskAction -Execute "explorer.exe" -Argument "`"$(Join-Path $base 'rodar.vbs')`""
 $gatilho = New-ScheduledTaskTrigger -Daily -At $Horario
 $config = New-ScheduledTaskSettingsSet -StartWhenAvailable -RunOnlyIfNetworkAvailable -AllowStartIfOnBatteries `
     -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 30) -MultipleInstances IgnoreNew
