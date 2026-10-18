@@ -5,8 +5,10 @@ direto. O script abre o Chromium, preenche usuário e senha e clica em
 "enviar" como uma pessoa faria. Se o Google mostrar um desafio de imagem,
 o script para e avisa (não tenta resolver captcha).
 """
+import json
 import re
 import time
+from datetime import datetime
 from pathlib import Path
 
 from playwright.sync_api import TimeoutError as PWTimeout
@@ -37,8 +39,13 @@ def _decodificar(resposta):
 
 
 class Portal:
-    def __init__(self, usuario, senha, headless=True, espera_captcha=0, perfil=None):
+    def __init__(self, usuario, senha, headless=True, espera_captcha=0, perfil=None, sessao=None):
         self.perfil = perfil
+        # arquivo com o cookie de sessão do portal: tenta reaproveitar o login do dia anterior
+        self.sessao = Path(sessao).expanduser() if sessao else None
+        self._sessao_anterior = None
+        self._login_em = None
+        self.logado = False
         self.usuario = usuario
         self.senha = senha
         self.headless = headless
@@ -58,11 +65,55 @@ class Portal:
             self._browser = self._pw.chromium.launch(headless=self.headless)
             self._ctx = self._browser.new_context(**opcoes)
         self.page = self._ctx.pages[0] if self._ctx.pages else self._ctx.new_page()
+        self._carregar_sessao()
         return self
 
     def __exit__(self, *exc):
+        if self.logado:
+            self._salvar_sessao()
         (self._browser or self._ctx).close()
         self._pw.stop()
+
+    def _carregar_sessao(self):
+        if not self.sessao or not self.sessao.exists():
+            return
+        try:
+            dados = json.loads(self.sessao.read_text(encoding="utf-8"))
+            self._ctx.add_cookies(dados["cookies"])
+            self._sessao_anterior = dados
+        except Exception as e:  # arquivo corrompido não pode travar o login normal
+            print(f"Sessão salva ignorada: {e}")
+
+    def _salvar_sessao(self):
+        if not self.sessao:
+            return
+        try:
+            cookies = [c for c in self._ctx.cookies() if c["domain"].endswith("univille.edu.br")]
+            agora = time.time()
+            dados = {"salvo_em": agora, "login_em": self._login_em or agora, "cookies": cookies}
+            self.sessao.parent.mkdir(parents=True, exist_ok=True)
+            self.sessao.write_text(json.dumps(dados), encoding="utf-8")
+        except Exception as e:
+            print(f"Não consegui salvar a sessão: {e}")
+
+    def _registrar_teste(self, resultado):
+        # uma linha por execução, pra ver depois em quanto tempo a sessão do portal deixa de valer
+        if not self.sessao:
+            return
+        ant = self._sessao_anterior
+        if ant:
+            desde_login = (time.time() - ant.get("login_em", ant["salvo_em"])) / 3600
+            desde_uso = (time.time() - ant["salvo_em"]) / 3600
+            idade = f"último login há {desde_login:.1f}h, último uso há {desde_uso:.1f}h"
+        else:
+            idade = "sem sessão salva"
+        linha = f"{datetime.now():%Y-%m-%d %H:%M} | {resultado} | {idade}"
+        print(f"Sessão: {linha}")
+        try:
+            with open(self.sessao.with_name("sessao-teste.log"), "a", encoding="utf-8") as f:
+                f.write(linha + "\n")
+        except Exception:
+            pass
 
     def get(self, caminho):
         url = caminho if caminho.startswith("http") else BASE + caminho
@@ -81,7 +132,13 @@ class Portal:
         p = self.page
         p.goto(URL_HOME, wait_until="domcontentloaded", timeout=60_000)
         if not p.locator("#loginForm").count():
-            return  # já logado
+            # já logado: o cookie salvo ainda valia
+            self._login_em = (self._sessao_anterior or {}).get("login_em")
+            self.logado = True
+            self._registrar_teste("sessão reaproveitada, sem login" if self._sessao_anterior else "já estava logado")
+            return
+        if self._sessao_anterior:
+            self._registrar_teste("sessão salva expirou, login normal")
 
         p.fill("#login", self.usuario)
         p.fill("#password", self.senha)
@@ -93,6 +150,10 @@ class Portal:
         while time.time() < prazo:
             try:
                 if p.locator(".item-community").count() or "Meu Espa" in p.title():
+                    self._login_em = time.time()
+                    self.logado = True
+                    if desafio_apareceu:
+                        print("Login feito depois do desafio de imagens")
                     return
                 if not desafio_apareceu and self._desafio_na_tela():
                     desafio_apareceu = True

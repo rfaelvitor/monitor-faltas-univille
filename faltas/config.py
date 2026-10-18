@@ -68,6 +68,7 @@ class Config:
     log_detalhado: bool = False
     pasta_saida: str = "site"
     perfil: str | None = None
+    sessao: str | None = None
     github_token: str | None = None
     github_repo: str | None = None
 
@@ -98,6 +99,8 @@ class Config:
             github_token=_env("GITHUB_TOKEN"),
             github_repo=_env("GITHUB_REPO"),
             perfil=_perfil(_env("PERFIL_NAVEGADOR", "" if headless else "~/.monitor-faltas/perfil")),
+            # guarda o cookie de sessão do portal pra tentar pular o login no dia seguinte. "0" desliga
+            sessao=_perfil(_env("SESSAO_SALVA", "" if headless else "~/.monitor-faltas/sessao.json")),
         )
 
     def limite_de(self, sigla):
