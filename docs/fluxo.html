@@ -1,0 +1,583 @@
+<title>Monitor de faltas por dentro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* layout: linha de metrô vertical, cada etapa é uma estação, desvios saem pela direita */
+:root{--bg:#F3F5F9;--surface:#FFFFFF;--ink:#17202D;--muted:#5A6476;--line:#D6DCE6;--auto:#0D7A64;--auto-soft:#E0F2ED;--ai:#6A44B8;--ai-soft:#EEE7F9;--you:#A85C00;--you-soft:#FBEEDB;--stop:#B3261E;--stop-soft:#FBE7E5;--tg:#E7EEF7;--f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;--f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;--f-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E131B;--surface:#161D28;--ink:#E5EAF2;--muted:#98A3B5;--line:#2A3444;--auto:#3DC6A4;--auto-soft:#12302A;--ai:#B79AF2;--ai-soft:#271F3D;--you:#F2A750;--you-soft:#3A2913;--stop:#F2837A;--stop-soft:#3A1C1A;--tg:#1C2633;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0E131B;--surface:#161D28;--ink:#E5EAF2;--muted:#98A3B5;--line:#2A3444;--auto:#3DC6A4;--auto-soft:#12302A;--ai:#B79AF2;--ai-soft:#271F3D;--you:#F2A750;--you-soft:#3A2913;--stop:#F2837A;--stop-soft:#3A1C1A;--tg:#1C2633;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:1060px;margin:0 auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));padding-block:40px 72px;display:grid;gap:56px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+h1{font-size:clamp(2.2rem,5vw,3.2rem);letter-spacing:-.02em;line-height:1.05}
+h2{font-size:1.55rem;letter-spacing:-.01em}
+h3{font-size:1.12rem}
+p{margin:0}
+code{font-family:var(--f-mono);font-size:.86em;background:color-mix(in srgb,var(--line) 45%,transparent);padding:.08em .38em;border-radius:4px;overflow-wrap:anywhere}
+a{color:var(--auto)}
+a:focus-visible{outline:2px solid var(--auto);outline-offset:2px;border-radius:4px}
+.eyebrow{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.lead{color:var(--muted);max-width:64ch;font-size:1.04rem}
+.sub{color:var(--muted);max-width:66ch}
+section{display:grid;gap:20px}
+header{display:grid;gap:14px}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:6px}
+.legend span{display:inline-flex;align-items:center;gap:7px;font-size:.86rem;color:var(--muted)}
+.legend i{width:11px;height:11px;border-radius:50%;display:inline-block}
+.clock{display:flex;gap:14px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.clock svg{flex:none;color:var(--auto)}
+.clock p{min-width:0}
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;overflow-x:auto}
+.diagram pre.mermaid{margin:0;background:transparent;font-family:var(--f-body);text-align:center;min-width:560px}
+.flow{list-style:none;margin:0;padding:0;position:relative;display:grid;gap:0}
+.flow::before{content:"";position:absolute;left:15px;top:18px;bottom:18px;width:4px;border-radius:2px;background:var(--auto);opacity:.35}
+.st{display:grid;grid-template-columns:34px minmax(0,1fr) minmax(0,250px);gap:6px 18px;padding-block:14px;position:relative}
+.dot{width:22px;height:22px;margin:4px 0 0 6px;border-radius:50%;background:var(--surface);border:4px solid var(--auto);position:relative;z-index:1;grid-row:span 2}
+.st[data-k="ai"] .dot{border-color:var(--ai)}
+.st[data-k="you"] .dot{border-color:var(--you);background:var(--you)}
+.body{display:grid;gap:8px;min-width:0;align-content:start}
+.head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px}
+.num{font-family:var(--f-mono);font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.tag{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px}
+.tag.auto{background:var(--auto-soft);color:var(--auto)}
+.tag.ai{background:var(--ai-soft);color:var(--ai)}
+.tag.you{background:var(--you-soft);color:var(--you)}
+.tag.lock{background:var(--stop-soft);color:var(--stop)}
+.body p{color:var(--muted);max-width:66ch}
+.body p b{color:var(--ink);font-weight:600}
+.meta{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
+.meta .tool{font-family:var(--f-mono);font-size:.76rem;border:1px solid var(--line);border-radius:6px;padding:2px 8px;background:var(--surface)}
+.meta .file{font-family:var(--f-mono);font-size:.76rem;color:var(--muted);padding:2px 0}
+.outs{display:grid;gap:8px;align-content:start;min-width:0}
+.out{font-size:.84rem;border-radius:8px;padding:8px 10px 8px 12px;border-left:3px solid;line-height:1.4}
+.out.stop{background:var(--stop-soft);border-color:var(--stop)}
+.out.you{background:var(--you-soft);border-color:var(--you)}
+.out.ok{background:var(--auto-soft);border-color:var(--auto)}
+.out small{display:block;font-family:var(--f-mono);font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;opacity:.8;margin-bottom:2px}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.bubble{background:var(--tg);border-radius:14px 14px 14px 4px;padding:12px 14px;font-size:.9rem;line-height:1.45;display:grid;gap:4px;min-width:0;align-content:start;overflow-wrap:anywhere}
+.bubble .k{font-weight:600}
+.bubble .q{font-style:italic;color:var(--muted)}
+.bubble .lnk{color:var(--auto);font-size:.84rem}
+.note{font-size:.82rem;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:10px;align-content:start;min-width:0}
+.panel h3{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.panel .small{font-size:.84rem;color:var(--muted)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:.9rem}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:500}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:600}
+td.nw{white-space:nowrap}
+.pill{display:inline-block;font-family:var(--f-mono);font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.stop{background:var(--stop-soft);color:var(--stop)}
+.pill.you{background:var(--you-soft);color:var(--you)}
+.pill.ok{background:var(--auto-soft);color:var(--auto)}
+.build{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:b}
+.build>li{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;align-items:start;counter-increment:b}
+.build>li::before{content:counter(b,decimal-leading-zero);font-family:var(--f-mono);font-size:.8rem;color:var(--muted);padding-top:3px;font-variant-numeric:tabular-nums}
+.build b{font-weight:600}
+.build p{color:var(--muted)}
+.build .meta{margin-top:6px}
+.docs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.tree{margin:0;font-family:var(--f-mono);font-size:.8rem;line-height:1.7;overflow-x:auto;color:var(--ink)}
+.tree span{color:var(--muted)}
+.kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 14px;font-size:.88rem}
+.kv dt{font-family:var(--f-mono);font-size:.8rem}
+.kv dd{margin:0;color:var(--muted)}
+.split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.split ul{margin:0;padding-left:18px;display:grid;gap:7px}
+.split li::marker{color:var(--muted)}
+.panel.a{border-top:4px solid var(--auto)}
+.panel.y{border-top:4px solid var(--you)}
+.checklist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.checklist li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:11px 14px}
+.checklist .ic{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:.72rem;font-weight:700;margin-top:1px}
+.checklist .done .ic{background:var(--auto);color:var(--surface)}
+.checklist .todo .ic{border:2px solid var(--you)}
+.checklist li span{color:var(--muted);font-size:.88rem}
+.hist{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.hist summary{cursor:pointer;font-size:.88rem;color:var(--muted);font-weight:500}
+.hist summary:hover{color:var(--ink)}
+.hist[open] summary{margin-bottom:12px}
+.atualizado{font-family:var(--f-mono);font-size:.74rem;color:var(--muted)}
+.lista{margin:0;padding-left:18px;display:grid;gap:8px;color:var(--muted)}
+.lista b{color:var(--ink);font-weight:600}
+.panel p{color:var(--muted)}
+.panel p b{color:var(--ink);font-weight:600}
+.panel p + p{margin-top:2px}
+section h3{margin-top:4px}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+[id]{scroll-margin-top:64px}
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;gap:10px}
+.toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:2px 16px;counter-reset:t}
+.toc li{counter-increment:t;min-width:0}
+.toc a{display:grid;grid-template-columns:30px minmax(0,1fr);gap:4px;padding:7px 8px;border-radius:8px;text-decoration:none;color:var(--ink)}
+.toc a::before{content:counter(t,decimal-leading-zero);font-family:var(--f-mono);font-size:.78rem;color:var(--muted);padding-top:2px}
+.toc a:hover{background:color-mix(in srgb,var(--auto-soft) 70%,transparent)}
+.toc a b{font-weight:600}
+.toc a small{grid-column:2;color:var(--muted);font-size:.8rem;line-height:1.35}
+.minibar{position:fixed;inset:0 0 auto 0;z-index:20;padding-top:env(safe-area-inset-top,0px);background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);transform:translateY(-110%);transition:transform .2s ease}
+.minibar.on{transform:none}
+.minibar .in{max-width:1060px;margin:0 auto;padding-block:8px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.minibar .in::-webkit-scrollbar{display:none}
+.minibar a{flex:none;white-space:nowrap;font-size:.8rem;padding:4px 10px;border-radius:999px;color:var(--muted);text-decoration:none;border:1px solid transparent}
+.minibar a:hover{color:var(--ink)}
+.minibar a.ativo{color:var(--ink);border-color:var(--line);background:var(--surface);font-weight:500}
+.minibar a.topo{font-family:var(--f-mono)}
+@media (prefers-reduced-motion:reduce){.minibar{transition:none}}
+@media (max-width:760px){.st{grid-template-columns:34px minmax(0,1fr)}.outs{grid-column:2}.split,.docs{grid-template-columns:minmax(0,1fr)}.wrap{gap:44px}}
+@media (max-width:420px){.kv{grid-template-columns:minmax(0,1fr);gap:2px}.kv dd{margin-bottom:8px}}
+</style>
+
+<nav class="minibar" aria-label="Atalhos das seções"><div class="in"><a class="topo" href="#topo" title="Voltar ao topo">↑ topo</a><a href="#visao">Visão geral</a><a href="#fluxo">Fluxo</a><a href="#avisos">Avisos</a><a href="#regras">Regras</a><a href="#tools">Ferramentas</a><a href="#como">Construção</a><a href="#docs">Documentação</a><a href="#split">Você x robô</a><a href="#avaliacao">Avaliação</a><a href="#hoje">Situação</a></div></nav>
+<div class="wrap">
+
+  <header id="topo">
+    <span class="eyebrow">Como o monitor funciona hoje</span>
+    <h1>Monitor de faltas por dentro</h1>
+    <span class="atualizado">Atualizado em 18/10/2026, 11h00 (horário de Brasília)</span>
+    <p class="lead">O caminho que o seu número de faltas e os seus trabalhos fazem, desde o portal da Univille até virar um e-mail e um painel no celular. Roda no seu notebook com Windows, uma vez por dia, pelo Agendador de Tarefas. Em uso desde 18/10/2026, com a primeira execução completa feita nesse dia.</p>
+    <div class="legend" aria-label="Legenda">
+      <span><i style="background:var(--auto)"></i>automático</span>
+      <span><i style="background:var(--you)"></i>precisa de você</span>
+      <span><i style="background:var(--stop)"></i>sai do fluxo ou dá erro</span>
+    </div>
+  </header>
+
+  <nav class="toc" id="sumario" aria-label="Sumário">
+    <span class="eyebrow">Sumário</span>
+    <ol>
+      <li><a href="#visao"><b>Visão geral</b><small>o diagrama do começo ao fim</small></a></li>
+      <li><a href="#fluxo"><b>O fluxo de uma execução</b><small>cada etapa, ferramenta e desvio</small></a></li>
+      <li><a href="#avisos"><b>O que chega pra você</b><small>e-mails e painel</small></a></li>
+      <li><a href="#regras"><b>Regras de aviso</b><small>faltas, trabalhos e erros</small></a></li>
+      <li><a href="#tools"><b>Ferramentas usadas</b><small>o que roda e o que você precisa ter</small></a></li>
+      <li><a href="#como"><b>Como foi construído</b><small>a ordem real dos passos e dos problemas</small></a></li>
+      <li><a href="#docs"><b>Documentação</b><small>estrutura, configuração, dados e erros</small></a></li>
+      <li><a href="#split"><b>Automático e com você</b><small>o que o monitor faz e o que fica com você</small></a></li>
+      <li><a href="#avaliacao"><b>Avaliação crítica</b><small>como estamos, expectativas e o que está no radar</small></a></li>
+      <li><a href="#hoje"><b>Situação hoje</b><small>o que está feito e o que falta</small></a></li>
+    </ol>
+  </nav>
+
+  <section aria-labelledby="visao">
+    <h2 id="visao">Visão geral em um diagrama</h2>
+    <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+  T["Agendador de Tarefas do Windows<br/>todo dia às 20h"] --> V["rodar.vbs e rodar.ps1<br/>atualizam o código e chamam o Python"]
+  V --> J{"Já verificou hoje?"}
+  J -->|"sim"| Z["Termina sem fazer nada"]
+  J -->|"não"| L["Chromium com perfil salvo<br/>faz login no portal"]
+  L --> C{"Apareceu o captcha?"}
+  C -->|"sim"| Y["Você resolve na janela<br/>(espera até 4 minutos)"]
+  C -->|"passou direto"| D
+  Y -->|"não resolveu"| X["E-mail de erro<br/>(no máximo 1 por dia)"]
+  Y --> D["Lista as disciplinas do semestre"]
+  D --> F["Faltas: soma 1º e 2º bimestre<br/>de cada disciplina"]
+  D --> W["Trabalhos de cada disciplina"]
+  F --> R{"Algum nível novo<br/>de faltas ou prazo?"}
+  W --> R
+  R -->|"sim"| E["Um e-mail só com tudo"]
+  R -->|"não"| P
+  E --> P["Cifra os dados e envia<br/>pro branch painel"]
+  P --> G["GitHub Pages mostra o painel<br/>(abre com a sua senha)"]
+</pre>
+    </div>
+  </section>
+
+  <section aria-labelledby="fluxo">
+    <h2 id="fluxo">O fluxo de uma execução</h2>
+
+    <div class="clock">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <p><b>Quem dá a partida:</b> a tarefa <b>"Monitor de faltas Univille"</b> do Agendador de Tarefas do Windows, todo dia às <b>20h</b> (horário de Brasília). Se o notebook estiver desligado nessa hora, ela roda assim que você ligar. Não dá pra rodar na nuvem: o Google desconfia do endereço dos servidores e pede o desafio de imagens em toda execução, então o monitor precisa abrir o navegador no seu computador, onde você está para resolver o captcha.</p>
+    </div>
+
+    <ol class="flow">
+      <li class="st" data-k="auto">
+        <div class="dot"></div>
+        <div class="body">
+          <div class="head"><span class="num">1</span><h3>Disparo e atualização do código</h3><span class="tag auto">automático</span></div>
+          <p>O Agendador chama o <code>explorer.exe</code> com o <code>rodar.vbs</code>, que abre o PowerShell <b>minimizado</b>. O <code>rodar.ps1</code> baixa o zip do branch <code>main</code> do seu repositório, troca a pasta <code>codigo</code>, garante o Chromium e roda <code>python -m faltas</code>. Sem internet, segue com o código que já tem.</p>
+          <div class="meta"><span class="tool">Task Scheduler</span><span class="tool">PowerShell</span><span class="tool">uv</span><span class="file">windows/rodar.vbs</span><span class="file">windows/rodar.ps1</span></div>
+        </div>
+        <div class="outs">
+          <div class="out stop"><small>abrir direto não funciona</small>Janela oculta ou lançamento direto pelo job travavam o Chromium. Por isso o caminho passa pelo explorer.exe</div>
+        </div>
+      </li>
+
+      <li class="st" data-k="auto">
+        <div class="dot"></div>
+        <div class="body">
+          <div class="head"><span class="num">2</span><h3>Já verificou hoje?</h3><span class="tag auto">automático</span></div>
+          <p>Lê o estado anterior (os dados cifrados do painel, guardados no seu PC) e vê se já houve verificação no dia. Uma por dia basta. Pra forçar outra, crie o arquivo <code>forcar.txt</code> na pasta do monitor ou rode o <code>rodar.ps1 -Forcar</code>.</p>
+          <div class="meta"><span class="file">faltas/main.py</span><span class="file">faltas/cripto.py</span></div>
+        </div>
+        <div class="outs">
+          <div class="out stop"><small>já rodou hoje</small>Termina sem abrir o navegador</div>
+        </div>
+      </li>
+
+      <li class="st" data-k="you">
+        <div class="dot"></div>
+        <div class="body">
+          <div class="head"><span class="num">3</span><h3>Login e captcha</h3><span class="tag you">você, quase todo dia</span></div>
+          <p>Abre o <b>Chromium com um perfil salvo</b> (<code>~/.monitor-faltas/perfil</code>) e entra com matrícula e senha. O reCAPTCHA do portal costuma pedir o desafio de imagens, porque o Google percebe que o navegador é controlado por programa. A janela fica aberta, você resolve, e o script espera <b>até 4 minutos</b> e segue sozinho. O monitor não tenta burlar o captcha.</p>
+          <div class="meta"><span class="tool">Playwright</span><span class="tool">Chromium</span><span class="file">faltas/portal.py</span></div>
+        </div>
+        <div class="outs">
+          <div class="out you"><small>captcha</small>Você resolve na janela do navegador</div>
+          <div class="out stop"><small>ninguém resolveu em 4 min, ou senha errada</small>A verificação do dia falha e chega um e-mail de erro (no máximo um por dia)</div>
+        </div>
+      </li>
+
+      <li class="st" data-k="auto">
+        <div class="dot"></div>
+        <div class="body">
+          <div class="head"><span class="num">4</span><h3>Disciplinas do semestre</h3><span class="tag auto">automático</span></div>
+          <p>Lê a home (Meu Espaço) e pega as disciplinas do semestre mais recente. Quando o semestre muda, as novas entram <b>sozinhas</b>. Dá pra forçar um semestre com a variável <code>SEMESTRE</code>.</p>
+          <div class="meta"><span class="file">faltas/portal.py</span><span class="file">faltas/parser.py</span></div>
+        </div>
+      </li>
+
+      <li class="st" data-k="auto">
+        <div class="dot"></div>
+        <div class="body">
+          <div class="head"><span class="num">5</span><h3>Faltas por disciplina</h3><span class="tag auto">automático</span></div>
+          <p>Abre o Diário de Classe, passa por <b>todos os professores</b> e lê o "Controle de Frequência / Conteúdo". Soma as faltas do 1º e do 2º bimestre. Se a disciplina tem mais de um professor, vale o <b>maior total</b>. O limite padrão é 18: passou disso, reprova.</p>
+          <div class="meta"><span class="file">faltas/portal.py</span><span class="file">faltas/parser.py</span><span class="file">faltas/regras.py</span></div>
+        </div>
+        <div class="outs">
+          <div class="out you"><small>faltas justificadas</small>Aparecem no painel, mas não são descontadas do total</div>
+        </div>
+      </li>
+
+      <li class="st" data-k="auto">
+        <div class="dot"></div>
+        <div class="body">
+          <div class="head"><span class="num">6</span><h3>Trabalhos por disciplina</h3><span class="tag auto">automático</span></div>
+          <p>Abre a página "Trabalhos / Atividades" (<code>Homework.html</code>) de cada disciplina e lê título, início, prazo, equipe e resposta. Trabalho com <b>resposta enviada</b> (ou "resposta final", no caso de equipe) conta como entregue e nunca gera aviso. Se a leitura de uma disciplina falhar, as outras continuam.</p>
+          <div class="meta"><span class="file">faltas/portal.py</span><span class="file">faltas/parser.py</span></div>
+        </div>
+        <div class="outs">
+          <div class="out ok"><small>entregue</small>Fica só no painel</div>
+          <div class="out you"><small>muitos trabalhos</small>Se a lista tiver mais de uma página, o monitor avisa no log e lê só a primeira</div>
+        </div>
+      </li>
+
+      <li class="st" data-k="auto">
+        <div class="dot"></div>
+        <div class="body">
+          <div class="head"><span class="num">7</span><h3>Decide o que avisar</h3><span class="tag auto">automático</span></div>
+          <p>Compara com o que já foi avisado. Faltas: um aviso por nível (10, 12, 14, 16 e 18), sem repetir. Trabalhos: até quatro momentos, cada um avisado <b>uma vez</b>. Na primeira execução, trabalhos que já venceram sem entrega entram calados, pra não chegar o semestre inteiro de uma vez.</p>
+          <div class="meta"><span class="file">faltas/regras.py</span></div>
+        </div>
+        <div class="outs">
+          <div class="out stop"><small>nada novo</small>Nenhum e-mail sai. O painel é atualizado do mesmo jeito</div>
+        </div>
+      </li>
+
+      <li class="st" data-k="auto">
+        <div class="dot"></div>
+        <div class="body">
+          <div class="head"><span class="num">8</span><h3>E-mail</h3><span class="tag auto">automático</span></div>
+          <p>Se houver novidade, manda <b>um e-mail só</b> com os níveis de faltas atingidos e os trabalhos a avisar, pelo SMTP do Gmail com senha de app. Na primeira execução vai um e-mail de boas-vindas com a situação de todas as disciplinas e os trabalhos pendentes.</p>
+          <div class="meta"><span class="tool">Gmail SMTP</span><span class="file">faltas/email_alerta.py</span></div>
+        </div>
+      </li>
+
+      <li class="st" data-k="auto">
+        <div class="dot"></div>
+        <div class="body">
+          <div class="head"><span class="num">9</span><h3>Painel</h3><span class="tag auto">automático</span></div>
+          <p>Cifra os dados com <b>AES-256-GCM</b> (chave derivada da <code>SENHA_PAINEL</code>) e envia <code>index.html</code> e <code>data.enc.json</code> ao branch <code>painel</code> pela API do GitHub, com um token que só escreve neste repositório. O GitHub Pages publica. Arquivos que não mudaram não são reenviados. O resultado também fica numa cópia local, na pasta <code>site</code>.</p>
+          <div class="meta"><span class="tool">GitHub Contents API</span><span class="tool">GitHub Pages</span><span class="file">faltas/cripto.py</span><span class="file">faltas/publicar_github.py</span><span class="file">painel/index.html</span></div>
+        </div>
+        <div class="outs">
+          <div class="out stop"><small>token vencido ou sem rede</small>O erro vai pro log, o e-mail já saiu e o painel online fica parado</div>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="avisos">
+    <h2 id="avisos">O que chega pra você</h2>
+    <div class="tgrid">
+      <div class="bubble">
+        <span class="k">⚠️ [Faltas e trabalhos] Atenção em 2 itens</span>
+        <span>FDIA: 14 faltas de 18 (folga de 4)</span>
+        <span>Trabalho "Relatório 2" de EIXO-III vence em 3 dias</span>
+        <span class="lnk">Abrir painel</span>
+      </div>
+      <div class="bubble">
+        <span class="k">📚 [Trabalhos] Trabalho novo</span>
+        <span>Disciplina: Gerencial</span>
+        <span>Título: "Estudo de caso 1"</span>
+        <span>Prazo: sexta, 23h59</span>
+        <span class="lnk">Abrir painel</span>
+      </div>
+      <div class="bubble">
+        <span class="k">❌ Monitor de faltas: erro</span>
+        <span>Não consegui entrar no portal. O captcha não foi resolvido em 4 minutos.</span>
+        <span>No máximo um e-mail de erro por dia.</span>
+      </div>
+      <div class="bubble">
+        <span class="k">🟢 Monitor ativado</span>
+        <span>Situação de cada disciplina, folga até o limite e trabalhos pendentes.</span>
+        <span class="lnk">Abrir painel</span>
+      </div>
+    </div>
+    <p class="note">Os textos acima mostram o formato dos e-mails, com disciplinas e prazos de exemplo. Os e-mails reais trazem as suas disciplinas.</p>
+    <h3>O painel</h3>
+    <p class="sub">Uma página estática no GitHub Pages que abre no celular. Os dados vão cifrados e só abrem com a sua senha. Mostra cada disciplina com faltas, folga e situação, os <b>trabalhos pendentes</b> com contagem regressiva e o histórico.</p>
+  </section>
+
+  <section aria-labelledby="regras">
+    <h2 id="regras">Regras de aviso</h2>
+    <p class="sub">Tudo configurável no <code>.env</code>. Os valores abaixo são os padrões.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>O que acontece</th><th>Resultado</th><th>Detalhe</th></tr></thead>
+        <tbody>
+          <tr><td>Disciplina chega a 10, 12, 14, 16 ou 18 faltas</td><td><span class="pill you">e-mail</span></td><td>Um aviso por nível, sem repetir. Níveis em <code>NIVEIS_ALERTA</code></td></tr>
+          <tr><td>Disciplina com mais de um professor</td><td><span class="pill ok">maior total</span></td><td>Vale o professor com mais faltas somadas</td></tr>
+          <tr><td>Limite diferente em alguma disciplina</td><td><span class="pill ok">configurável</span></td><td><code>LIMITES_ESPECIFICOS=FDIA=20,EIXO-III=20</code></td></tr>
+          <tr><td>Trabalho novo sem entrega</td><td><span class="pill you">e-mail</span></td><td>Estágio 1, quando aparece</td></tr>
+          <tr><td>Faltam 3 dias para o prazo</td><td><span class="pill you">e-mail</span></td><td>Estágio 2</td></tr>
+          <tr><td>Falta 1 dia para o prazo</td><td><span class="pill you">e-mail</span></td><td>Estágio 3</td></tr>
+          <tr><td>Prazo passou sem entrega</td><td><span class="pill stop">e-mail, uma vez</span></td><td>Estágio 4</td></tr>
+          <tr><td>Trabalho com resposta enviada</td><td><span class="pill ok">sem aviso</span></td><td>Em equipe, só conta com "resposta final"</td></tr>
+          <tr><td>Erro (senha, captcha, portal fora do ar)</td><td><span class="pill stop">e-mail de erro</span></td><td>No máximo um por dia</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="tools">
+    <h2 id="tools">Ferramentas usadas</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Ferramenta</th><th>Pra que serve aqui</th><th>O que você precisa ter</th></tr></thead>
+        <tbody>
+          <tr><td>Agendador de Tarefas do Windows</td><td>Dispara o monitor todo dia às 20h</td><td>Um notebook com Windows, ligado nesse horário</td></tr>
+          <tr><td>PowerShell + VBScript</td><td>Atualizam o código e abrem o Python sem roubar o foco</td><td>Nada, já vêm no Windows</td></tr>
+          <tr><td>uv</td><td>Baixa um Python portátil e instala as bibliotecas</td><td>Nada, o instalador cuida</td></tr>
+          <tr><td>Playwright + Chromium</td><td>Abre o navegador de verdade, com perfil salvo, e lê o portal</td><td>Nada, o instalador baixa</td></tr>
+          <tr><td>Gmail (SMTP)</td><td>Envia os alertas e os erros</td><td>Senha de app de 16 caracteres</td></tr>
+          <tr><td>GitHub (API e Pages)</td><td>Hospeda o código e o painel</td><td>Repositório público e um token fine-grained só com Contents: Read and write</td></tr>
+          <tr><td>cryptography (AES-GCM)</td><td>Cifra os dados antes de publicar</td><td>Uma senha boa em <code>SENHA_PAINEL</code></td></tr>
+          <tr><td>pytest</td><td>30 testes com HTML de exemplo, sem acessar o portal</td><td>Nada, rodam a cada push no GitHub Actions</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="como">
+    <h2 id="como">Como foi construído</h2>
+    <p class="sub">A ordem em que as coisas foram descobertas e feitas. Os primeiros passos ficam recolhidos; os mais recentes aparecem abertos.</p>
+    <details class="hist">
+      <summary>Ver os 5 primeiros passos</summary>
+      <ol class="build">
+        <li><div><b>Leitura do portal</b><p>Mapeado o caminho Meu Espaço, Diário de Classe, Controle de Frequência. O parser foi escrito contra HTML real salvo como exemplo, e os testes usam esse HTML.</p><div class="meta"><span class="tool">Playwright</span><span class="tool">BeautifulSoup</span><span class="tool">pytest</span></div></div></li>
+        <li><div><b>Regras de faltas e e-mail</b><p>Soma dos dois bimestres, maior total entre professores, níveis 10 a 18, um e-mail por nível, e-mail de erro limitado a um por dia.</p></div></li>
+        <li><div><b>Painel cifrado</b><p>Página estática que decifra os dados no navegador. Os dados vão em AES-256-GCM e a chave sai da senha do painel (PBKDF2, 250 mil iterações).</p><div class="meta"><span class="tool">AES-GCM</span><span class="tool">GitHub Pages</span></div></div></li>
+        <li><div><b>Primeira versão no GitHub Actions</b><p>Rodava num runner instalado no notebook, porque o captcha bloqueava os servidores do GitHub. Funcionava, mas a janela do runner precisava ficar aberta o tempo todo.</p><div class="meta"><span class="tool">GitHub Actions</span><span class="tool">self-hosted runner</span></div></div></li>
+        <li><div><b>Falsos positivos do captcha</b><p>O script achava captcha onde só havia o selo invisível do reCAPTCHA. Passou a detectar só o desafio de imagens de verdade.</p></div></li>
+      </ol>
+    </details>
+    <ol class="build" style="counter-reset:b 5">
+      <li><div><b>Perfil persistente do navegador</b><p>O Chromium passou a usar sempre a mesma pasta de perfil. Reduz o captcha só um pouco: o cookie de sessão do portal não tem validade, então não dá pra reaproveitar o login de um dia pro outro.</p><div class="meta"><span class="tool">launch_persistent_context</span><span class="file">faltas/portal.py</span></div></div></li>
+      <li><div><b>Trabalhos e atividades</b><p>Novo leitor da página Homework.html, com os quatro estágios de aviso, a regra de "já entregue" (inclusive resposta final de equipe) e o mesmo e-mail das faltas. Seção "Trabalhos pendentes" no painel.</p><div class="meta"><span class="tool">BeautifulSoup</span><span class="file">faltas/regras.py</span><span class="file">painel/index.html</span></div></div></li>
+      <li><div><b>Saída do GitHub Actions</b><p>Você decidiu migrar pro Agendador de Tarefas. O painel passou a ser enviado pela API do GitHub com um token, direto do notebook. O workflow do monitor foi apagado e o runner, as variáveis e os secrets antigos foram limpos.</p><div class="meta"><span class="tool">Task Scheduler</span><span class="tool">GitHub Contents API</span><span class="file">faltas/publicar_github.py</span></div></div></li>
+      <li><div><b>Instalador de um comando</b><p>O <code>instalar.ps1</code> roda por <code>irm | iex</code> e faz tudo: instala o uv, pergunta credenciais, grava o <code>.env</code>, registra a tarefa. A primeira versão quebrou no PowerShell 5.1 por causa do bloco <code>param()</code>, que não funciona nesse modo. Foi trocado por variáveis de ambiente.</p><div class="meta"><span class="tool">PowerShell 5.1</span><span class="file">windows/instalar.ps1</span></div></div></li>
+      <li><div><b>O navegador não abria pela tarefa</b><p>O log mostrou timeout de 180 s no Chromium. Três causas, resolvidas uma a uma: aspas perdidas no <code>cmd /c</code>, janela oculta que travava o navegador (passou a abrir minimizada) e o lançamento direto dentro do job (passou a sair pelo <code>explorer.exe</code>). Também foi corrigido o log, que saía com acentos quebrados. Teste de 18/10, 10h38: 6 disciplinas, 18 trabalhos e painel publicado.</p><div class="meta"><span class="tool">explorer.exe</span><span class="file">windows/rodar.vbs</span><span class="file">windows/rodar.ps1</span></div></div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="docs">
+    <h2 id="docs">Documentação</h2>
+    <div class="docs">
+      <div class="panel">
+        <h3>Estrutura do projeto</h3>
+<pre class="tree">monitor-faltas-univille/
+├── faltas/
+│   ├── main.py             <span>orquestra a execução</span>
+│   ├── portal.py           <span>login e navegação (Playwright)</span>
+│   ├── parser.py           <span>lê o HTML: faltas e trabalhos</span>
+│   ├── regras.py           <span>situação e quando avisar</span>
+│   ├── email_alerta.py     <span>monta e envia os e-mails</span>
+│   ├── cripto.py           <span>AES-GCM do painel</span>
+│   ├── publicar_github.py  <span>envia o painel ao branch painel</span>
+│   └── config.py           <span>lê o .env</span>
+├── painel/index.html       <span>painel (decifra no navegador)</span>
+├── windows/
+│   ├── instalar.ps1        <span>instalador de um comando</span>
+│   ├── rodar.ps1           <span>atualiza o código e roda</span>
+│   └── rodar.vbs           <span>chamado pelo Agendador</span>
+├── tests/                  <span>30 testes com HTML de exemplo</span>
+└── docs/                   <span>imagem do painel e esta página</span></pre>
+      </div>
+
+      <div class="panel">
+        <h3>Como rodar</h3>
+        <dl class="kv">
+          <dt>Instalar</dt><dd><code>$env:MONITOR_REPO="usuario/repo"; irm "https://raw.githubusercontent.com/$env:MONITOR_REPO/main/windows/instalar.ps1" | iex</code></dd>
+          <dt>Outro horário</dt><dd>Rode o instalador de novo com <code>$env:MONITOR_HORARIO="21:30";</code> antes do comando</dd>
+          <dt>Forçar agora</dt><dd><code>powershell -ExecutionPolicy Bypass -File %USERPROFILE%\.monitor-faltas\rodar.ps1 -Forcar</code></dd>
+          <dt>Forçar na próxima</dt><dd>Criar o arquivo vazio <code>forcar.txt</code> em <code>%USERPROFILE%\.monitor-faltas</code></dd>
+          <dt>Manual</dt><dd><code>python -m faltas</code> (Linux e Mac também, com <code>cron</code> pro agendamento)</dd>
+          <dt>Testes</dt><dd><code>python -m pytest</code></dd>
+        </dl>
+      </div>
+
+      <div class="panel">
+        <h3>Configuração (.env)</h3>
+        <p class="small">Fica em <code>%USERPROFILE%\.monitor-faltas\.env</code>.</p>
+        <dl class="kv">
+          <dt>UNIVILLE_USUARIO / SENHA</dt><dd>Login do portal</dd>
+          <dt>SENHA_PAINEL</dt><dd>Abre o painel. Se trocar, o histórico antigo não abre mais</dd>
+          <dt>GMAIL_USUARIO / GMAIL_SENHA_APP</dt><dd>Envio dos e-mails</dd>
+          <dt>GITHUB_TOKEN / GITHUB_REPO</dt><dd>Publicação do painel</dd>
+          <dt>LIMITE_FALTAS</dt><dd>18</dd>
+          <dt>NIVEIS_ALERTA</dt><dd>10,12,14,16,18</dd>
+          <dt>ESPERA_CAPTCHA</dt><dd>240 segundos</dd>
+          <dt>PERFIL_NAVEGADOR</dt><dd>Pasta do perfil. <code>0</code> desliga e aumenta o captcha</dd>
+        </dl>
+      </div>
+
+      <div class="panel">
+        <h3>Onde ficam os dados</h3>
+        <dl class="kv">
+          <dt>Credenciais</dt><dd>Só no <code>.env</code> do seu computador</dd>
+          <dt>Perfil do navegador</dt><dd><code>~/.monitor-faltas/perfil</code></dd>
+          <dt>Log</dt><dd><code>~/.monitor-faltas/logs/ultima-execucao.log</code>, reescrito a cada execução</dd>
+          <dt>Estado</dt><dd>Dados cifrados em <code>~/.monitor-faltas/site</code>, com o que já foi avisado</dd>
+          <dt>Painel online</dt><dd>Branch <code>painel</code> do repositório, só o arquivo cifrado</dd>
+        </dl>
+      </div>
+    </div>
+
+    <h3>Quando algo der errado</h3>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Sintoma</th><th>Causa provável</th><th>O que fazer</th></tr></thead>
+        <tbody>
+          <tr><td>Navegador não abre</td><td>Tarefa registrada com o formato antigo</td><td>Rodar o instalador de novo. A ação deve ser <code>explorer.exe</code> com o <code>rodar.vbs</code></td></tr>
+          <tr><td>E-mail de erro por captcha</td><td>Ninguém resolveu em 4 minutos</td><td>Rodar com <code>-Forcar</code> quando estiver no computador. Dá pra aumentar <code>ESPERA_CAPTCHA</code></td></tr>
+          <tr><td>E-mail de erro de login</td><td>Senha do portal mudou</td><td>Atualizar <code>UNIVILLE_SENHA</code> no <code>.env</code></td></tr>
+          <tr><td>Painel online parado, e-mails normais</td><td>Token do GitHub venceu</td><td>Gerar outro token e trocar <code>GITHUB_TOKEN</code> no <code>.env</code></td></tr>
+          <tr><td>E-mail de erro de leitura</td><td>Univille mudou o layout do portal</td><td>Ajustar o <code>parser.py</code></td></tr>
+          <tr><td>Acentos quebrados no log</td><td>Versão antiga do <code>rodar.ps1</code></td><td>Rodar uma vez: ele se atualiza pelo repositório</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="split">
+    <h2 id="split">O que é automático e o que fica com você</h2>
+    <div class="split">
+      <div class="panel a">
+        <h3>O monitor faz</h3>
+        <ul>
+          <li>Roda todo dia às 20h, ou quando o notebook liga</li>
+          <li>Atualiza o próprio código pelo repositório</li>
+          <li>Entra no portal, lê faltas e trabalhos de todas as disciplinas</li>
+          <li>Descobre as disciplinas de cada semestre novo</li>
+          <li>Soma bimestres e escolhe o maior total entre professores</li>
+          <li>Avisa por e-mail sem repetir o mesmo aviso</li>
+          <li>Ignora trabalho já entregue</li>
+          <li>Cifra e publica o painel</li>
+        </ul>
+      </div>
+      <div class="panel y">
+        <h3>Fica com você</h3>
+        <ul>
+          <li>Estar com o notebook ligado por volta das 20h</li>
+          <li>Resolver o desafio de imagens quando o Google pedir</li>
+          <li>Trocar o token do GitHub quando vencer</li>
+          <li>Atualizar a senha no <code>.env</code> se mudar no portal</li>
+          <li>Ajustar o parser se a Univille mudar o portal</li>
+          <li>Conferir se a falta justificada deve ou não contar</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="avaliacao">
+    <h2 id="avaliacao">Avaliação crítica</h2>
+    <p class="sub">Uma leitura honesta de onde o projeto está, do que esperar e do que pode estar passando despercebido. Feita em 18/10, às 11h00. Vamos revisar e discutir juntos depois da primeira semana de uso às 20h.</p>
+    <div class="docs">
+      <div class="panel">
+        <h3>Como estamos</h3>
+        <p><b>Funciona de ponta a ponta, mas com uma execução real só.</b> Em 18/10, às 10h38, a tarefa abriu o navegador, você resolveu o captcha e o monitor leu 6 disciplinas e 18 trabalhos e publicou o painel. Os 30 testes automáticos passam, mas rodam contra HTML de exemplo. Ainda não houve um dia inteiro no horário das 20h, nem um e-mail de alerta de faltas disparado por um nível real.</p>
+        <p><b>Quebrou no contato com o mundo real:</b> o cookie de sessão do portal some ao fechar o navegador, o Chromium travou em janela oculta e dentro do job do Agendador, o instalador falhou no PowerShell 5.1. Cada um foi achado ao rodar na sua máquina, não nos testes. Espere mais descobertas assim nas primeiras semanas.</p>
+        <p><b>Mudou de natureza:</b> o monitor deixou de ser 100% automático. Ele depende de você estar na frente do computador pra resolver o captcha.</p>
+      </div>
+      <div class="panel">
+        <h3>Expectativas realistas</h3>
+        <ul class="lista">
+          <li><b>Captcha:</b> espere o desafio de imagens na maioria dos dias. O perfil salvo ajuda pouco. Resolver leva segundos, desde que você esteja lá.</li>
+          <li><b>Dias sem verificação:</b> notebook desligado ou captcha sem resposta em 4 minutos. A verificação do dia falha e você recebe um e-mail de erro. Quando os dias passam em branco, o aviso de 18 faltas pode chegar tarde.</li>
+          <li><b>Quanto ajuda:</b> o ganho real é não ter que abrir o portal disciplina por disciplina e não esquecer prazos de trabalho. Como o aviso é diário, no pior caso você sabe da situação com 1 ou 2 dias de atraso.</li>
+          <li><b>Manutenção:</b> qualquer mudança de layout do portal quebra a leitura. Conte com um ajuste de parser por semestre, em estimativa.</li>
+          <li><b>Colegas:</b> cada um precisa do próprio repositório, token, senha de app e notebook ligado. É mais uma instalação guiada do que um produto pronto.</li>
+        </ul>
+      </div>
+    </div>
+    <h3>No radar</h3>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Ponto</th><th>Por que importa</th><th>O que sugiro</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>1. Captcha e notebook ligado</td><td>É a maior dependência. Sem você no computador, a verificação não roda</td><td>Horário fixo às 20h e acompanhar por uma semana quantos dias o desafio aparece</td><td><span class="pill you">a discutir</span></td></tr>
+          <tr><td>2. Token do GitHub vence</td><td>O painel online para de atualizar sem aviso por e-mail. Só o log mostra</td><td>Você deixou sem validade, o que resolve. Guardar o token só no <code>.env</code></td><td><span class="pill ok">decidido</span></td></tr>
+          <tr><td>3. Código se atualiza sozinho pelo branch main</td><td>Quem controla o repositório controla o que roda no seu notebook, com acesso à sua senha do portal</td><td>Manter a conta do GitHub com verificação em duas etapas e não aceitar pull requests sem ler</td><td><span class="pill you">a discutir</span></td></tr>
+          <tr><td>4. Senha do portal em texto no .env</td><td>Quem abrir sua pasta de usuário lê a senha</td><td>Aceitável num notebook pessoal. Evitar copiar a pasta .monitor-faltas pra outro lugar</td><td><span class="pill you">a discutir</span></td></tr>
+          <tr><td>5. Painel público, mas cifrado</td><td>Qualquer um baixa o arquivo cifrado e pode tentar adivinhar a senha. Senha fraca anula a proteção</td><td>Usar uma senha longa em <code>SENHA_PAINEL</code></td><td><span class="pill you">a discutir</span></td></tr>
+          <tr><td>6. Faltas justificadas não são descontadas</td><td>O total pode ficar maior do que o real e gerar aviso a mais</td><td>Conferir com um caso real e, se o portal já desconta, ajustar o parser</td><td><span class="pill you">a discutir</span></td></tr>
+          <tr><td>7. Lista de trabalhos com mais de uma página</td><td>Trabalhos da página 2 em diante não seriam vistos</td><td>Por enquanto só avisa no log. Tratar a paginação se acontecer</td><td><span class="pill you">a discutir</span></td></tr>
+          <tr><td>8. Termos de uso do portal</td><td>O monitor só lê páginas, mas acessar por programa pode não agradar a Univille</td><td>Manter só leitura, um acesso por dia, sem burlar o captcha</td><td><span class="pill ok">decidido</span></td></tr>
+          <tr><td>9. Falta de medição</td><td>Hoje não há registro de quantos dias o captcha apareceu ou falhou</td><td>Ler o log por uma semana antes de decidir qualquer mudança no fluxo</td><td><span class="pill you">a discutir</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="hoje">
+    <h2 id="hoje">Situação hoje</h2>
+    <ul class="checklist">
+      <li class="done"><span class="ic">✓</span><div><b>Leitura de faltas e trabalhos</b><br><span>6 disciplinas e 18 trabalhos lidos na execução de 18/10.</span></div></li>
+      <li class="done"><span class="ic">✓</span><div><b>Agendador de Tarefas funcionando</b><br><span>A tarefa abre o navegador e conclui sozinha depois do captcha.</span></div></li>
+      <li class="done"><span class="ic">✓</span><div><b>Painel no GitHub Pages</b><br><span>Publicado pelo branch painel, com seção de trabalhos pendentes.</span></div></li>
+      <li class="done"><span class="ic">✓</span><div><b>Limpeza do GitHub</b><br><span>Runner, variáveis e secrets antigos removidos, workflow do monitor apagado.</span></div></li>
+      <li class="done"><span class="ic">✓</span><div><b>README e instalador</b><br><span>Passo a passo pra colegas copiarem o projeto.</span></div></li>
+      <li class="todo"><span class="ic"></span><div><b>Passar a tarefa do seu notebook para 20h</b><br><span>Ainda está em 08h. O comando <code>Set-ScheduledTask</code> foi passado no chat.</span></div></li>
+      <li class="todo"><span class="ic"></span><div><b>Remover o runner antigo</b><br><span>Pasta <code>C:\actions-runner</code> e o atalho <code>runner-faltas.cmd</code> na inicialização.</span></div></li>
+      <li class="todo"><span class="ic"></span><div><b>Acompanhar a primeira semana às 20h</b><br><span>Ver o log, quantos dias o captcha apareceu e se algum e-mail de nível chegou.</span></div></li>
+      <li class="todo"><span class="ic"></span><div><b>Revisar esta avaliação crítica</b><br><span>Depois da primeira semana, atualizando o status de cada ponto.</span></div></li>
+      <li class="todo"><span class="ic"></span><div><b>Compartilhar com os colegas</b><br><span>Só depois de uma semana estável, pra não passar adiante algo que ainda quebra.</span></div></li>
+    </ul>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var bar=document.querySelector('.minibar'),toc=document.getElementById('sumario');
+  if(!bar||!toc||!('IntersectionObserver' in window))return;
+  var links={};bar.querySelectorAll('a[href^="#"]').forEach(function(a){links[a.getAttribute('href').slice(1)]=a});
+  new IntersectionObserver(function(e){bar.classList.toggle('on',!e[0].isIntersecting&&e[0].boundingClientRect.top<0)}).observe(toc);
+  var atual=null;
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(!e.isIntersecting)return;var id=e.target.querySelector('h2')&&e.target.querySelector('h2').id;
+    if(!id||!links[id]||id===atual)return;if(atual&&links[atual])links[atual].classList.remove('ativo');atual=id;var a=links[id];a.classList.add('ativo');
+    var box=a.parentNode;box.scrollTo({left:a.offsetLeft-box.clientWidth/2+a.clientWidth/2,behavior:'smooth'});});},{rootMargin:'-35% 0px -60% 0px'});
+  document.querySelectorAll('section').forEach(function(s){io.observe(s)});
+})();
+</script>

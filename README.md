@@ -6,6 +6,8 @@ Roda no seu próprio computador com Windows, pelo Agendador de Tarefas. Quando o
 
 ![Painel de faltas](docs/painel.png)
 
+Quer ver como tudo funciona por dentro (fluxo, regras, limitações e avaliação crítica)? Veja a [página "Monitor de faltas por dentro"](https://claude.ai/artifact/GkVpD8KbwkRMWhk2KhEtq8). Há uma cópia em [`docs/fluxo.html`](docs/fluxo.html).
+
 ## O que ele faz
 
 - Entra no portal com a sua matrícula e senha
