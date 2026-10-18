@@ -24,7 +24,7 @@ O limite padrão é 18 faltas: passou disso, reprova.
 
 O login do portal tem reCAPTCHA do Google. Em servidores (GitHub Actions e parecidos) o Google desconfia do IP e pede o desafio de imagens em toda execução, então não dá pra rodar 100% na nuvem. O script **não tenta burlar o captcha**.
 
-No seu computador ele abre um navegador de verdade e usa sempre o mesmo perfil (`%USERPROFILE%\.monitor-faltas\perfil`). Um navegador que volta todo dia costuma ser reconhecido pelo Google e passa direto. Quando o Google ainda pedir as imagens, a janela fica aberta e você resolve; o script espera até 4 minutos e faz o resto sozinho.
+No seu computador ele abre um navegador de verdade e usa sempre o mesmo perfil (`%USERPROFILE%\.monitor-faltas\perfil`). Isso ajuda um pouco, mas o Google detecta que o navegador está sendo controlado por um programa, então na prática ele pede o desafio de imagens na maioria dos dias. A janela fica aberta, você resolve, e o script espera até 4 minutos e faz o resto sozinho.
 
 A sessão do portal em si não dá pra reaproveitar de um dia pro outro: o cookie de sessão some quando o navegador fecha e expira rápido no servidor.
 
@@ -64,10 +64,10 @@ Ele pergunta matrícula, senha do portal, uma senha pro painel (você inventa), 
 
 - instala o [uv](https://docs.astral.sh/uv/), que baixa um Python portátil (não precisa instalar Python)
 - baixa o código e o navegador (Chromium)
-- cria a tarefa **"Monitor de faltas Univille"** no Agendador: todo dia às 8h. Se o computador estiver desligado nesse horário, roda assim que você ligar
+- cria a tarefa **"Monitor de faltas Univille"** no Agendador: todo dia às 20h. Se o computador estiver desligado nesse horário, roda assim que você ligar. Escolha um horário em que você costuma estar no computador, porque às vezes o Google pede o desafio de imagens e alguém precisa resolver
 - oferece rodar a primeira verificação na hora
 
-Pra trocar o horário, rode o instalador de novo com `$env:MONITOR_HORARIO="19:00";` antes do comando. Rodar o instalador de novo também atualiza o código e mantém a configuração.
+Pra trocar o horário, rode o instalador de novo com `$env:MONITOR_HORARIO="21:30";` antes do comando. Rodar o instalador de novo também atualiza o código e mantém a configuração.
 
 ### 5. Ative o GitHub Pages
 
@@ -165,7 +165,8 @@ Rodar os testes: `pip install -r requirements-dev.txt && python -m pytest`
 
 ## Limitações
 
-- **reCAPTCHA no login.** O perfil salvo reduz bastante os desafios, mas o Google ainda pode pedir as imagens de vez em quando. Se ninguém resolver em 4 minutos, a verificação do dia falha e chega um e-mail de erro
+- **reCAPTCHA no login.** Navegador controlado por programa é detectado pelo Google, então espere o desafio de imagens na maioria dos dias. O perfil salvo pode reduzir um pouco, mas não elimina. Se ninguém resolver em 4 minutos, a verificação do dia falha e chega um e-mail de erro. Por isso o horário da tarefa deve ser um em que você está no computador
+- **Token do GitHub vence.** Quando vencer, os e-mails continuam mas o painel online para de atualizar (o log mostra o erro). Gere outro token e troque no `.env`
 - **Computador precisa ligar.** Se o PC ficar dias desligado, não há verificação nesses dias
 - **Mudança de layout.** Se a Univille mudar o portal, a leitura pode quebrar. Aí chega um e-mail de erro e é preciso ajustar o `parser.py`
 - **Faltas justificadas** aparecem no painel mas não são descontadas do total, porque não está claro como o portal já as considera

@@ -4,7 +4,7 @@
 # Rodar de novo atualiza tudo e mantem a configuracao (.env) que ja existe.
 # sem bloco param: o script roda via irm | iex
 $Repo = if ($env:MONITOR_REPO) { $env:MONITOR_REPO } else { "rfaelvitor/monitor-faltas-univille" }
-$Horario = if ($env:MONITOR_HORARIO) { $env:MONITOR_HORARIO } else { "08:00" }
+$Horario = if ($env:MONITOR_HORARIO) { $env:MONITOR_HORARIO } else { "20:00" }
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $base = Join-Path $env:USERPROFILE ".monitor-faltas"
