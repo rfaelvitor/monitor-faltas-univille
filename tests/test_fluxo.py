@@ -31,6 +31,11 @@ class PortalFalso:
     def home(self):
         return ler("myspace.html")
 
+    def trabalhos(self, slug):
+        if "esd_i" in slug:
+            return parser.ler_trabalhos(ler("trabalhos.html"))
+        return []
+
     def professores(self, slug):
         return parser.ler_professores(ler("gradebook_dois_professores.html"))
 
@@ -102,3 +107,15 @@ def test_uma_vez_por_dia_pula_segunda_execucao(ambiente, monkeypatch):
     monkeypatch.setenv("FORCAR", "1")
     assert main.executar() is True
     assert len(enviados) == 2
+
+
+def test_trabalhos_vao_pro_painel_e_nao_repetem_aviso(ambiente, monkeypatch):
+    pasta, enviados = ambiente
+    main.executar()
+    dados = estado(pasta)
+    assert len(dados["trabalhos"]) == 4
+    # Exercício Recursão (pendente) já entra como avisado; vencidos antigos ficam calados
+    assert any(v == 1 for v in dados["trabalhos_avisados"].values())
+    assert any(v == 4 for v in dados["trabalhos_avisados"].values())
+    main.executar()
+    assert len(enviados) == 1

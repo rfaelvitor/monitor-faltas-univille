@@ -56,7 +56,14 @@ def coletar(cfg):
             raise RuntimeError("Nenhuma disciplina encontrada na home (layout mudou?)")
 
         resultado = []
+        trabalhos = []
         for d in disciplinas:
+            try:
+                for t in portal.trabalhos(d["codigo"]):
+                    trabalhos.append({**t, "codigo_disciplina": d["codigo"], "sigla": d["sigla"], "disciplina": d["nome"]})
+            except Exception as e:
+                # trabalhos são extra: se falhar numa disciplina, as faltas seguem
+                print(f"Não consegui ler os trabalhos de uma disciplina ({type(e).__name__})")
             melhor = None
             for prof in portal.professores(d["codigo"]):
                 url, freq = portal.frequencia(d["codigo"], prof["codigo"])
@@ -82,7 +89,7 @@ def coletar(cfg):
 
     ordem = ["reprovado", "limite", "alerta", "atencao", "ok"]
     resultado.sort(key=lambda x: (ordem.index(x["status"]), -x["total"], x["nome"]))
-    return resultado
+    return resultado, trabalhos
 
 
 def atualizar_historico(anterior, disciplinas, hoje):
@@ -136,7 +143,7 @@ def executar():
         print("Já verificado hoje, nada a fazer")
         return False
 
-    disciplinas = coletar(cfg)
+    disciplinas, trabalhos = coletar(cfg)
     semestre = disciplinas[0]["semestre"] if disciplinas else None
     resumo_log(cfg, disciplinas)
 
@@ -144,16 +151,22 @@ def executar():
     primeira_vez = anterior is None or (anterior.get("semestre") != semestre)
     novos, enviados_novo = regras.calcular_alertas(disciplinas, enviados, cfg.niveis)
 
+    avisados_trab = None if primeira_vez else (anterior or {}).get("trabalhos_avisados")
+    avisos_trab, avisados_trab_novo = regras.calcular_avisos_trabalhos(trabalhos, avisados_trab, agora)
+    pendentes = regras.pendentes(trabalhos, agora)
+    print(f"{len(trabalhos)} trabalhos lidos, {len(pendentes)} pendentes, {len(avisos_trab)} aviso(s) novo(s)")
+
     if primeira_vez:
-        assunto, corpo = email_alerta.montar_boas_vindas(disciplinas, cfg.url_painel)
+        assunto, corpo = email_alerta.montar_boas_vindas(disciplinas, cfg.url_painel, pendentes)
         ok = email_alerta.enviar(cfg, assunto, corpo)
         print("Primeira execução do semestre: resumo inicial" + (" enviado" if ok else " não enviado"))
-    elif novos:
-        assunto, corpo = email_alerta.montar_alerta(novos, disciplinas, cfg.url_painel)
+    elif novos or avisos_trab:
+        assunto, corpo = email_alerta.montar_alerta(novos, disciplinas, cfg.url_painel, avisos_trab, pendentes)
         ok = email_alerta.enviar(cfg, assunto, corpo)
-        print(f"{len(novos)} alerta(s) novo(s)")
+        print(f"{len(novos)} alerta(s) de falta, {len(avisos_trab)} de trabalho")
         if not ok and cfg.email_configurado:
             enviados_novo = enviados  # tenta de novo na próxima
+            avisados_trab_novo = avisados_trab
     else:
         print("Nenhum nível novo atingido")
 
@@ -165,6 +178,8 @@ def executar():
         "limite_padrao": cfg.limite,
         "disciplinas": disciplinas,
         "alertas_enviados": enviados_novo,
+        "trabalhos": trabalhos,
+        "trabalhos_avisados": avisados_trab_novo,
         "historico": atualizar_historico(None if primeira_vez else anterior, disciplinas, agora.date().isoformat()),
     }
     publicar(cfg, dados)

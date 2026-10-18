@@ -121,3 +121,56 @@ def ler_frequencia(html_presenca):
 
 def tem_formulario_login(html):
     return 'id="loginForm"' in html or "id='loginForm'" in html
+
+
+RE_DATA = re.compile(r"(\d{2})-(\d{2})-(\d{4})\s+(\d{2}):(\d{2})")
+
+
+def _data_iso(texto):
+    m = RE_DATA.search(texto or "")
+    if not m:
+        return None
+    d, mes, a, h, mi = m.groups()
+    return f"{a}-{mes}-{d}T{h}:{mi}"
+
+
+def _entregue(texto):
+    t = " ".join(texto.lower().split())
+    if "não foi entregue" in t or "nao foi entregue" in t:
+        return False
+    # trabalho em equipe mostra parciais e finais; só conta como entregue com resposta final
+    if "parcia" in t and "fina" not in t:
+        return False
+    return "enviad" in t
+
+
+def ler_trabalhos(html_trabalhos):
+    """Lista da página 'Trabalhos / Atividades' (Homework.html). Disciplina sem trabalho não tem tabela."""
+    sopa = BeautifulSoup(html_trabalhos, "lxml")
+    tabela = sopa.select_one("#homeworkList")
+    if tabela is None:
+        return []
+    trabalhos = []
+    for tr in tabela.select("tbody > tr"):
+        tds = tr.find_all("td", recursive=False)
+        if len(tds) < 6:
+            continue
+        link = tds[0].find("a")
+        titulo = (link.get("data-title") or link.get_text(strip=True)) if link else tds[0].get_text(" ", strip=True)
+        resposta = tds[4].get_text(" ", strip=True)
+        trabalhos.append({
+            "id": (link.get("data-id") if link else None) or titulo,
+            "titulo": titulo.strip(),
+            "inicio": _data_iso(tds[1].get_text()),
+            "prazo": _data_iso(tds[2].get_text()),
+            "equipe": tds[3].get_text(" ", strip=True),
+            "resposta": resposta,
+            "entregue": _entregue(resposta),
+            "situacao": tds[5].get_text(" ", strip=True),
+        })
+    rodape = tabela.select_one("tfoot")
+    if rodape:
+        m = re.search(r"Total de (\d+)", rodape.get_text())
+        if m and int(m.group(1)) > len(trabalhos):
+            print(f"AVISO: página de trabalhos mostra {len(trabalhos)} de {m.group(1)} (paginação não tratada)")
+    return trabalhos

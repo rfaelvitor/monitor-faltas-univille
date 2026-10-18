@@ -153,3 +153,9 @@ class Portal:
     def frequencia(self, slug, cod_professor):
         url = f"/community/{slug}/GradeBook.html?action=studentPresence&codeTeacher={cod_professor}"
         return url, parser.ler_frequencia(self.get(url))
+
+    def trabalhos(self, slug):
+        html = self.get(f"/community/{slug}/Homework.html")
+        if parser.tem_formulario_login(html):
+            raise ErroLogin("Sessão perdida ao abrir os trabalhos")
+        return parser.ler_trabalhos(html)

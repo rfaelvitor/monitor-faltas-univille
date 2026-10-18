@@ -61,6 +61,14 @@ label.lembrar{display:flex;gap:8px;align-items:center;font-size:13px;color:var(-
 .erro{color:var(--limite);font-size:13px;min-height:18px;margin-top:8px}
 .sair{background:none;border:1px solid var(--line);color:var(--muted);width:auto;margin:0;padding:4px 10px;font-size:13px}
 footer{margin-top:28px;color:var(--muted);font-size:13px}
+h2{font-size:18px;font-weight:600;margin:30px 0 12px}
+.trabs{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.trab{display:grid;grid-template-columns:72px 1fr auto;gap:4px 12px;align-items:center;padding:11px 14px;border-top:1px solid var(--line)}
+.trab:first-child{border-top:0}
+.trab .quando{text-align:right;font-size:13px;color:var(--muted);white-space:nowrap}
+.trab .quando b{display:block;color:var(--c);font-size:14px;font-weight:600}
+.trab .tit{font-size:15px;line-height:1.35}
+.obs{color:var(--muted);font-size:13px;margin-top:8px}
 </style>
 </head>
 <body>
@@ -139,6 +147,28 @@ function card(d, hist){
   </article>`;
 }
 
+function trabalhos(dados){
+  const ts = dados.trabalhos;
+  if (!ts) return "";
+  const agora = new Date();
+  const prazo = t => t.prazo ? new Date(t.prazo + ":00-03:00") : null;
+  const abertos = ts.filter(t => !t.entregue && (!t.prazo || prazo(t) > agora))
+    .sort((a, b) => (a.prazo || "9999").localeCompare(b.prazo || "9999"));
+  const vencidos = ts.filter(t => !t.entregue && t.prazo && prazo(t) <= agora).length;
+  const entregues = ts.filter(t => t.entregue).length;
+  const linha = t => {
+    const p = prazo(t), h = p ? (p - agora) / 36e5 : null;
+    const cor = h == null ? "muted" : h <= 24 ? "limite" : h <= 72 ? "alerta" : "ok";
+    const falta = h == null ? "sem prazo" : h < 24 ? `${Math.max(Math.round(h), 0)}h` : `${Math.floor(h / 24)} dia${Math.floor(h / 24) === 1 ? "" : "s"}`;
+    return `<div class="trab" style="--c:var(--${cor})"><span class="sigla">${esc(t.sigla)}</span>
+      <span class="tit">${esc(t.titulo)}</span>
+      <span class="quando"><b>${falta}</b>${p ? p.toLocaleString("pt-BR", {day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"}) : ""}</span></div>`;
+  };
+  return `<h2>Trabalhos pendentes</h2>
+    ${abertos.length ? `<div class="trabs">${abertos.map(linha).join("")}</div>` : '<p class="vazio">Nenhum trabalho pendente com prazo aberto.</p>'}
+    <p class="obs">${entregues} entregue${entregues === 1 ? "" : "s"} · ${vencidos} vencido${vencidos === 1 ? "" : "s"} sem entrega no semestre</p>`;
+}
+
 function render(dados){
   const ds = dados.disciplinas || [];
   const conta = s => ds.filter(d => d.status === s).length;
@@ -159,6 +189,7 @@ function render(dados){
       <div class="kpi"><b>${conta("ok")}</b><span>tranquilas</span></div>
     </section>
     <section class="grid">${ds.map(d => card(d, hist[d.codigo])).join("")}</section>
+    ${trabalhos(dados)}
     <footer>Faltas do 1º + 2º bimestre somadas. Atualização automática diária. Dados do portal da Univille.</footer>`;
   const s = document.getElementById("sair");
   if (s) s.onclick = () => { guardar(CHAVE, null); location.reload(); };
