@@ -28,8 +28,18 @@ if (-not $uv) { $uv = Join-Path $env:USERPROFILE ".local\bin\uv.exe" }
 $env:PYTHONUTF8 = "1"
 if ($Forcar) { $env:FORCAR = "1" }
 
+# deixa este script atualizado tambem (vale da proxima vez)
+Copy-Item (Join-Path $codigo "windows\rodar.ps1"), (Join-Path $codigo "windows\rodar.vbs") $base -Force -ErrorAction SilentlyContinue
+
+function Rodar($argumentos) {
+    # stdout e stderr do uv/python vao pro log; o PowerShell embrulha o stderr, entao converte pra texto
+    & $uv @argumentos 2>&1 | ForEach-Object { "$_" } | Out-File $log -Append -Encoding utf8
+    return $LASTEXITCODE
+}
+
 Set-Location $codigo
-cmd /c "`"$uv`" run --python 3.12 --with-requirements requirements.txt python -m playwright install chromium >> `"$log`" 2>&1"
-cmd /c "`"$uv`" run --python 3.12 --with-requirements requirements.txt python -m faltas >> `"$log`" 2>&1"
-"=== fim, codigo de saida $LASTEXITCODE ===" | Out-File $log -Append -Encoding utf8
-exit $LASTEXITCODE
+$comum = @("run", "--python", "3.12", "--with-requirements", "requirements.txt", "python")
+Rodar ($comum + @("-m", "playwright", "install", "chromium")) | Out-Null
+$saida = Rodar ($comum + @("-m", "faltas"))
+"=== fim, codigo de saida $saida ===" | Out-File $log -Append -Encoding utf8
+exit $saida
