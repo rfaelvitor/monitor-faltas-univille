@@ -83,8 +83,8 @@ Na primeira verificação chega um e-mail "Monitor ativado" com a situação de 
 
 ## Uso no dia a dia
 
-- A tarefa roda sem janela de terminal. Só o navegador aparece por cerca de um minuto, porque é nele que você resolve o desafio de imagens quando o Google pedir
-- Uma verificação por dia. Pra forçar outra: `powershell -ExecutionPolicy Bypass -File %USERPROFILE%\.monitor-faltas\rodar.ps1 -Forcar`
+- Durante a execução fica um PowerShell minimizado na barra de tarefas e o navegador aparece por cerca de um minuto, porque é nele que você resolve o desafio de imagens quando o Google pedir. Não feche o navegador no meio
+- Uma verificação por dia. Pra forçar outra, crie um arquivo vazio `forcar.txt` na pasta `%USERPROFILE%\.monitor-faltas` (vale pra próxima execução) ou rode: `powershell -ExecutionPolicy Bypass -File %USERPROFILE%\.monitor-faltas\rodar.ps1 -Forcar`
 - Log da última execução: `%USERPROFILE%\.monitor-faltas\logs\ultima-execucao.log`
 - A cada execução o código é atualizado a partir do branch `main` do seu repositório
 - Se der erro (senha errada, portal fora do ar, captcha não resolvido), chega no máximo um e-mail de erro por dia

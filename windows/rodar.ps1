@@ -26,6 +26,10 @@ try {
 $uv = (Get-Command uv -ErrorAction SilentlyContinue).Source
 if (-not $uv) { $uv = Join-Path $env:USERPROFILE ".local\bin\uv.exe" }
 $env:PYTHONUTF8 = "1"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8  # senao os acentos do python saem quebrados no log
+# criar o arquivo forcar.txt na pasta faz a proxima execucao verificar de novo mesmo ja tendo rodado hoje
+$marca = Join-Path $base "forcar.txt"
+if (Test-Path $marca) { $Forcar = $true; Remove-Item $marca -Force }
 if ($Forcar) { $env:FORCAR = "1" }
 
 # deixa este script atualizado tambem (vale da proxima vez)
