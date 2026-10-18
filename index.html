@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Painel de faltas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f2ec; --card:#fffdf8; --ink:#1d2420; --muted:#68706a; --line:#e2ddd2;
+  --ok:#2f7d4f; --atencao:#a87a12; --alerta:#c25a15; --limite:#b3261e; --reprovado:#6e1a14;
+  --track:#ebe6db; --accent:#00573a;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#121614; --card:#1a1f1c; --ink:#e7ebe8; --muted:#97a19a; --line:#2a312d;
+    --ok:#5bbf83; --atencao:#e0b24a; --alerta:#f08a45; --limite:#ff6b5e; --reprovado:#ff9a8f;
+    --track:#262d29; --accent:#5bbf83;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:28px 16px 48px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px;margin-bottom:22px}
+h1{font-size:26px;font-weight:600;margin:0;letter-spacing:-.01em}
+.meta{color:var(--muted);font-size:14px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:22px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi b{display:block;font-size:26px;font-weight:600;line-height:1.2}
+.kpi span{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+.topo{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.sigla{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--muted)}
+.nome{font-weight:500;font-size:15px;margin:2px 0 12px;line-height:1.35}
+.selo{font-size:12px;font-weight:600;color:var(--c);border:1px solid var(--c);border-radius:999px;padding:2px 9px;white-space:nowrap}
+.numero{display:flex;align-items:baseline;gap:6px}
+.numero b{font-size:38px;font-weight:600;line-height:1;color:var(--c)}
+.numero span{color:var(--muted)}
+.barra{position:relative;height:10px;background:var(--track);border-radius:6px;margin:12px 0 6px;overflow:hidden}
+.barra i{position:absolute;top:0;bottom:0;left:0}
+.b1{background:var(--c);opacity:.95}
+.b2{background:var(--c);opacity:.55}
+.marcas{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.det{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:12px;font-size:13px}
+.det div span{color:var(--muted);display:block;font-size:12px}
+.rodape{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:13px;gap:8px}
+.rodape a{color:var(--accent)}
+svg.spark{width:96px;height:26px}
+.vazio{color:var(--muted);font-size:13px}
+.login{max-width:380px;margin:12vh auto 0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+.login h1{font-size:20px;margin-bottom:6px}
+.login p{color:var(--muted);font-size:14px;margin:0 0 14px}
+input[type=password]{width:100%;font:inherit;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+button{font:inherit;font-weight:500;margin-top:10px;width:100%;padding:10px;border-radius:8px;border:0;background:var(--accent);color:#fff;cursor:pointer}
+label.lembrar{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);margin-top:10px}
+.erro{color:var(--limite);font-size:13px;min-height:18px;margin-top:8px}
+.sair{background:none;border:1px solid var(--line);color:var(--muted);width:auto;margin:0;padding:4px 10px;font-size:13px}
+footer{margin-top:28px;color:var(--muted);font-size:13px}
+h2{font-size:18px;font-weight:600;margin:30px 0 12px}
+.trabs{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.trab{display:grid;grid-template-columns:72px 1fr auto;gap:4px 12px;align-items:center;padding:11px 14px;border-top:1px solid var(--line)}
+.trab:first-child{border-top:0}
+.trab .quando{text-align:right;font-size:13px;color:var(--muted);white-space:nowrap}
+.trab .quando b{display:block;color:var(--c);font-size:14px;font-weight:600}
+.trab .tit{font-size:15px;line-height:1.35}
+.obs{color:var(--muted);font-size:13px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const STATUS = {ok:"Tranquilo", atencao:"Atenção", alerta:"Perto do limite", limite:"No limite", reprovado:"Reprovado por falta"};
+const app = document.getElementById("app");
+const CHAVE = "painel-faltas-senha";
+
+function guardar(k, v){ try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} }
+function lerGuardado(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+async function decifrar(p, senha){
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(senha), "PBKDF2", false, ["deriveKey"]);
+  const chave = await crypto.subtle.deriveKey({name:"PBKDF2", salt:b64(p.sal), iterations:p.iter, hash:"SHA-256"},
+    base, {name:"AES-GCM", length:256}, false, ["decrypt"]);
+  const claro = await crypto.subtle.decrypt({name:"AES-GCM", iv:b64(p.iv)}, chave, b64(p.dados));
+  return JSON.parse(new TextDecoder().decode(claro));
+}
+
+async function buscar(nome){
+  const r = await fetch(nome + "?t=" + Date.now(), {cache:"no-store"});
+  return r.ok ? r.json() : null;
+}
+
+function telaSenha(msg){
+  app.innerHTML = `<form class="login" id="f">
+    <h1>Painel de faltas</h1>
+    <p>Os dados ficam criptografados. Digite a senha do painel (SENHA_PAINEL).</p>
+    <input type="password" id="s" autocomplete="current-password" placeholder="Senha do painel" required>
+    <label class="lembrar"><input type="checkbox" id="l" checked> Lembrar neste navegador</label>
+    <button type="submit">Abrir</button>
+    <div class="erro" id="e">${esc(msg || "")}</div></form>`;
+  document.getElementById("f").onsubmit = async ev => {
+    ev.preventDefault();
+    const senha = document.getElementById("s").value;
+    document.getElementById("e").textContent = "Abrindo...";
+    try {
+      const dados = await decifrar(window.__pacote, senha);
+      if (document.getElementById("l").checked) guardar(CHAVE, senha);
+      render(dados);
+    } catch(e){ document.getElementById("e").textContent = "Senha incorreta."; }
+  };
+}
+
+function spark(hist, limite){
+  if (!hist || hist.length < 2) return "";
+  const w = 96, h = 26, max = Math.max(limite + 1, ...hist.map(x => x.total));
+  const pts = hist.map((x, i) => `${(i / (hist.length - 1) * (w - 4) + 2).toFixed(1)},${(h - 2 - x.total / max * (h - 4)).toFixed(1)}`).join(" ");
+  const yl = (h - 2 - limite / max * (h - 4)).toFixed(1);
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" aria-label="evolução das faltas"><line x1="0" x2="${w}" y1="${yl}" y2="${yl}" stroke="var(--line)" stroke-dasharray="3 3"/><polyline fill="none" stroke="var(--c)" stroke-width="2" points="${pts}"/></svg>`;
+}
+
+function card(d, hist){
+  const lim = d.limite, escala = Math.max(lim, d.total);
+  const p1 = Math.min(d.b1.faltas / escala * 100, 100), p2 = Math.min(d.b2.faltas / escala * 100, 100 - p1);
+  const freq = b => b.frequencia == null ? "—" : b.frequencia.toFixed(1).replace(".", ",") + "%";
+  const margem = d.total > lim ? "Passou do limite" : d.total === lim ? "Nenhuma (próxima reprova)" : `${d.margem} falta${d.margem === 1 ? "" : "s"}`;
+  return `<article class="card" style="--c:var(--${d.status})">
+    <div class="topo"><span class="sigla">${esc(d.sigla)}</span><span class="selo">${STATUS[d.status]}</span></div>
+    <div class="nome">${esc(d.nome.replace(/\s*\[.*$/, ""))}</div>
+    <div class="numero"><b>${d.total}</b><span>de ${lim} faltas</span></div>
+    <div class="barra" title="1º bimestre: ${d.b1.faltas} · 2º bimestre: ${d.b2.faltas}">
+      <i class="b1" style="width:${p1}%"></i><i class="b2" style="left:${p1}%;width:${p2}%"></i></div>
+    <div class="marcas"><span>0</span><span>limite ${lim}</span></div>
+    <div class="det">
+      <div><span>1º bimestre</span>${d.b1.faltas} faltas · ${freq(d.b1)}</div>
+      <div><span>2º bimestre</span>${d.b2.faltas} faltas · ${freq(d.b2)}</div>
+      <div><span>Ainda pode faltar</span>${margem}</div>
+      <div><span>Docente</span>${esc(d.docente || "—")}</div>
+    </div>
+    ${d.sem_dados ? '<p class="vazio">Sem lançamentos de frequência ainda.</p>' : ""}
+    <div class="rodape">${d.url ? `<a href="${esc(d.url)}" target="_blank" rel="noopener">Ver no portal</a>` : "<span></span>"}${spark(hist, lim)}</div>
+  </article>`;
+}
+
+function trabalhos(dados){
+  const ts = dados.trabalhos;
+  if (!ts) return "";
+  const agora = new Date();
+  const prazo = t => t.prazo ? new Date(t.prazo + ":00-03:00") : null;
+  const abertos = ts.filter(t => !t.entregue && (!t.prazo || prazo(t) > agora))
+    .sort((a, b) => (a.prazo || "9999").localeCompare(b.prazo || "9999"));
+  const vencidos = ts.filter(t => !t.entregue && t.prazo && prazo(t) <= agora).length;
+  const entregues = ts.filter(t => t.entregue).length;
+  const linha = t => {
+    const p = prazo(t), h = p ? (p - agora) / 36e5 : null;
+    const cor = h == null ? "muted" : h <= 24 ? "limite" : h <= 72 ? "alerta" : "ok";
+    const falta = h == null ? "sem prazo" : h < 24 ? `${Math.max(Math.round(h), 0)}h` : `${Math.floor(h / 24)} dia${Math.floor(h / 24) === 1 ? "" : "s"}`;
+    return `<div class="trab" style="--c:var(--${cor})"><span class="sigla">${esc(t.sigla)}</span>
+      <span class="tit">${esc(t.titulo)}</span>
+      <span class="quando"><b>${falta}</b>${p ? p.toLocaleString("pt-BR", {day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"}) : ""}</span></div>`;
+  };
+  return `<h2>Trabalhos pendentes</h2>
+    ${abertos.length ? `<div class="trabs">${abertos.map(linha).join("")}</div>` : '<p class="vazio">Nenhum trabalho pendente com prazo aberto.</p>'}
+    <p class="obs">${entregues} entregue${entregues === 1 ? "" : "s"} · ${vencidos} vencido${vencidos === 1 ? "" : "s"} sem entrega no semestre</p>`;
+}
+
+function render(dados){
+  const ds = dados.disciplinas || [];
+  const conta = s => ds.filter(d => d.status === s).length;
+  const risco = conta("alerta") + conta("limite") + conta("reprovado");
+  const quando = new Date(dados.atualizado_em);
+  const hist = {};
+  (dados.historico || []).forEach(h => (hist[h.codigo] = hist[h.codigo] || []).push(h));
+  const menor = ds.length ? Math.min(...ds.map(d => d.limite - d.total)) : 0;
+  app.innerHTML = `<header>
+      <div><h1>Faltas ${esc(dados.semestre || "")}</h1>
+      <div class="meta">Atualizado em ${quando.toLocaleString("pt-BR", {dateStyle:"short", timeStyle:"short"})}</div></div>
+      ${lerGuardado(CHAVE) ? '<button class="sair" id="sair">Esquecer senha</button>' : ""}
+    </header>
+    <section class="resumo">
+      <div class="kpi"><b>${ds.length}</b><span>disciplinas</span></div>
+      <div class="kpi"><b style="color:${risco ? "var(--alerta)" : "var(--ok)"}">${risco}</b><span>perto ou no limite</span></div>
+      <div class="kpi"><b class="mono">${Math.max(menor, 0)}</b><span>menor folga (faltas)</span></div>
+      <div class="kpi"><b>${conta("ok")}</b><span>tranquilas</span></div>
+    </section>
+    <section class="grid">${ds.map(d => card(d, hist[d.codigo])).join("")}</section>
+    ${trabalhos(dados)}
+    <footer>Faltas do 1º + 2º bimestre somadas. Atualização automática diária. Dados do portal da Univille.</footer>`;
+  const s = document.getElementById("sair");
+  if (s) s.onclick = () => { guardar(CHAVE, null); location.reload(); };
+}
+
+(async () => {
+  try {
+    const aberto = await buscar("data.json");
+    if (aberto) return render(aberto);
+    window.__pacote = await buscar("data.enc.json");
+    if (!window.__pacote) { app.innerHTML = '<p class="vazio">Ainda não há dados. Rode o workflow uma vez.</p>'; return; }
+    const salva = lerGuardado(CHAVE);
+    if (salva) { try { return render(await decifrar(window.__pacote, salva)); } catch(e){ guardar(CHAVE, null); } }
+    telaSenha();
+  } catch(e){ app.innerHTML = `<p class="erro">Erro ao carregar: ${esc(e.message)}</p>`; }
+})();
+</script>
+</body>
+</html>
