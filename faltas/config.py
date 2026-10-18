@@ -17,6 +17,8 @@ def _carregar_dotenv(caminho=".env"):
 
 
 _carregar_dotenv()
+# no Windows (Agendador de Tarefas) a configuração fica fora da pasta do código
+_carregar_dotenv(Path.home() / ".monitor-faltas" / ".env")
 
 
 def _env(nome, padrao=None, obrigatorio=False):
@@ -66,6 +68,8 @@ class Config:
     log_detalhado: bool = False
     pasta_saida: str = "site"
     perfil: str | None = None
+    github_token: str | None = None
+    github_repo: str | None = None
 
     @classmethod
     def carregar(cls):
@@ -91,6 +95,8 @@ class Config:
             log_detalhado=_env("LOG_DETALHADO", "0") == "1",
             pasta_saida=_env("PASTA_SAIDA", "site"),
             # navegador visível = seu PC, então guarda o perfil por padrão. "0" desliga
+            github_token=_env("GITHUB_TOKEN"),
+            github_repo=_env("GITHUB_REPO"),
             perfil=_perfil(_env("PERFIL_NAVEGADOR", "" if headless else "~/.monitor-faltas/perfil")),
         )
 

@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import cripto, email_alerta, parser, regras
+from . import cripto, email_alerta, parser, publicar_github, regras
 from .config import Config
 from .portal import Portal
 
@@ -184,6 +184,12 @@ def executar():
     }
     publicar(cfg, dados)
     print("Painel gerado em", cfg.pasta_saida)
+    # fora do GitHub Actions o próprio script manda o painel pro Pages
+    if cfg.github_token and cfg.github_repo and not os.environ.get("GITHUB_ACTIONS"):
+        try:
+            publicar_github.enviar(cfg.github_repo, cfg.github_token, cfg.pasta_saida)
+        except Exception as e:
+            print(f"Não consegui publicar o painel: {e}")
     return True
 
 
