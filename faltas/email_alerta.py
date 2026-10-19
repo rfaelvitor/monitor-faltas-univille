@@ -24,7 +24,7 @@ def _linha(d, destaque=False):
         f"<td style='padding:6px 10px;border-bottom:1px solid #eee'>{html.escape(d['nome'])}</td>"
         f"<td style='padding:6px 10px;border-bottom:1px solid #eee;text-align:center'>{d['b1']['faltas']}</td>"
         f"<td style='padding:6px 10px;border-bottom:1px solid #eee;text-align:center'>{d['b2']['faltas']}</td>"
-        f"<td style='padding:6px 10px;border-bottom:1px solid #eee;text-align:center'>{d['total']}/{limite}</td>"
+        f"<td style='padding:6px 10px;border-bottom:1px solid #eee;text-align:center'>{d['total']}</td>"
         f"<td style='padding:6px 10px;border-bottom:1px solid #eee;text-align:center'>{margem(d['total'], limite)}</td>"
         f"<td style='padding:6px 10px;border-bottom:1px solid #eee;color:{cor}'>{STATUS[d['status']]}</td>"
         "</tr>"
