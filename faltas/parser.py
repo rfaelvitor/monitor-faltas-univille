@@ -9,6 +9,28 @@ RE_SIGLA = re.compile(r"\[([^\]]+)\]")
 RE_NUM = re.compile(r"(\d+(?:[.,]\d+)?)")
 
 
+MINUSCULAS = {"de", "da", "do", "das", "dos", "e", "em", "na", "no", "nas", "nos", "a", "o", "para", "com", "por", "ao", "à", "às", "aos"}
+ROMANOS = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8, "IX": 9, "X": 10}
+
+
+def nome_curto(nome):
+    """'ESTRUTURAS DE DADOS I [ESD_I] - GERENCIAL-ENGETEC (2026-2)' vira 'Estruturas de Dados 1'."""
+    base = re.split(r"\s*\[", nome, maxsplit=1)[0].strip()
+    base = re.sub(r"\s*\(\d{4}-\d\)\s*$", "", base)  # sem sigla, tira só o semestre do fim
+    palavras = base.split()
+    if not palavras:
+        return nome.strip()
+    saida = []
+    for i, p in enumerate(palavras):
+        if i == len(palavras) - 1 and i > 0 and p.upper() in ROMANOS:
+            saida.append(str(ROMANOS[p.upper()]))  # algarismo romano no fim vira número
+        elif i > 0 and p.lower() in MINUSCULAS:
+            saida.append(p.lower())
+        else:
+            saida.append("-".join(x.capitalize() for x in p.split("-")))
+    return " ".join(saida)
+
+
 def _num(texto, tipo=int, padrao=0):
     m = RE_NUM.search(texto or "")
     if not m:
@@ -31,7 +53,8 @@ def ler_disciplinas(html_myspace):
         sigla = RE_SIGLA.search(nome)
         vistas[slug] = {
             "codigo": slug,
-            "nome": nome,
+            "nome": nome_curto(nome),
+            "nome_completo": nome,
             "sigla": sigla.group(1) if sigla else slug.split(".")[-1].upper(),
             "semestre": sem.group(1) if sem else None,
         }

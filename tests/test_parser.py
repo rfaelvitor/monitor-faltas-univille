@@ -58,3 +58,11 @@ def test_pagina_de_login_detectada():
     assert parser.tem_formulario_login(ler("login.html"))
     with pytest.raises(ValueError):
         parser.ler_frequencia(ler("login.html"))
+
+
+def test_nome_curto():
+    assert parser.nome_curto("ESTRUTURAS DE DADOS I [ESD_I] - GERENCIAL-ENGETEC (2026-2)") == "Estruturas de Dados 1"
+    assert parser.nome_curto("TESTE DE SOFTWARE II [TES_II] - 144-5AN (2026-2)") == "Teste de Software 2"
+    assert parser.nome_curto("ALGORITMOS [ALG] - GERENCIAL-ENGETEC (2026-1)") == "Algoritmos"
+    assert parser.nome_curto("INTRODUÇÃO À ENGENHARIA [IEN] - X (2026-2)") == "Introdução à Engenharia"
+    assert parser.nome_curto("ALGORITMOS (2026-1)") == "Algoritmos"

@@ -46,6 +46,10 @@ def _rodape(url_painel):
     return f"<p style='font-family:Arial,sans-serif;font-size:13px'><a href='{html.escape(url_painel)}'>Abrir painel de faltas</a></p>"
 
 
+def _disc(t):
+    return t.get("disciplina") or t["sigla"]
+
+
 def _prazo(t):
     if not t.get("prazo"):
         return "sem prazo"
@@ -59,7 +63,7 @@ def _bloco_trabalhos(avisos):
     if not avisos:
         return ""
     itens = "".join(
-        f"<li><b>{html.escape(t['sigla'])}</b>: {html.escape(t['titulo'])}, prazo {_prazo(t)} "
+        f"<li><b>{html.escape(_disc(t))}</b>: {html.escape(t['titulo'])}, prazo {_prazo(t)} "
         f"<span style='color:{COR_ESTAGIO[t['estagio']]}'>({TEXTO_ESTAGIO[t['estagio']]})</span></li>"
         for t in avisos
     )
@@ -75,7 +79,7 @@ def _tabela_pendentes(pendentes):
     )
     linhas = "".join(
         "<tr>"
-        f"<td style='padding:6px 10px;border-bottom:1px solid #eee'>{html.escape(t['sigla'])}</td>"
+        f"<td style='padding:6px 10px;border-bottom:1px solid #eee'>{html.escape(_disc(t))}</td>"
         f"<td style='padding:6px 10px;border-bottom:1px solid #eee'>{html.escape(t['titulo'])}</td>"
         f"<td style='padding:6px 10px;border-bottom:1px solid #eee'>{_prazo(t)}</td>"
         "</tr>"
@@ -90,7 +94,7 @@ def _tabela_pendentes(pendentes):
 def _assunto_trabalhos(avisos):
     if len(avisos) == 1:
         t = avisos[0]
-        return f"[Trabalhos] {t['sigla']}: {t['titulo']} ({TEXTO_ESTAGIO[t['estagio']]})"
+        return f"[Trabalhos] {_disc(t)}: {t['titulo']} ({TEXTO_ESTAGIO[t['estagio']]})"
     return f"[Trabalhos] {len(avisos)} avisos de trabalho"
 
 
@@ -103,11 +107,11 @@ def montar_alerta(novos, disciplinas, url_painel=None, avisos_trab=(), pendentes
         d = novos[0]
         limite = d["limite"]
         if d["total"] > limite:
-            assunto = f"[Faltas] {d['sigla']}: {d['total']} faltas, passou do limite de {limite}"
+            assunto = f"[Faltas] {d['nome']}: {d['total']} faltas, passou do limite de {limite}"
         elif d["total"] == limite:
-            assunto = f"[Faltas] {d['sigla']}: {d['total']} faltas, no limite (mais uma reprova)"
+            assunto = f"[Faltas] {d['nome']}: {d['total']} faltas, no limite (mais uma reprova)"
         else:
-            assunto = f"[Faltas] {d['sigla']}: {d['total']} faltas, sobram {margem(d['total'], limite)}"
+            assunto = f"[Faltas] {d['nome']}: {d['total']} faltas, sobram {margem(d['total'], limite)}"
     else:
         assunto = f"[Faltas] {len(novos)} disciplinas subiram de nível"
 

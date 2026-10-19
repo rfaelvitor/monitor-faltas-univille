@@ -1,5 +1,6 @@
 """Roda o fluxo inteiro com um portal falso (sem rede)."""
 import json
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -52,6 +53,13 @@ class PortalFalso:
 
 @pytest.fixture
 def ambiente(tmp_path, monkeypatch):
+    # relógio fixo: os prazos do HTML de exemplo são de outubro de 2026 e o teste não pode depender do dia em que roda
+    class Relogio(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 10, 15, 12, 0, tzinfo=tz)
+
+    monkeypatch.setattr(main, "datetime", Relogio)
     for k, v in {
         "UNIVILLE_USUARIO": "x", "UNIVILLE_SENHA": "y", "SENHA_PAINEL": "painel123",
         "PASTA_SAIDA": str(tmp_path / "site"), "GMAIL_USUARIO": "a@b.com", "GMAIL_SENHA_APP": "z",
@@ -93,7 +101,7 @@ def test_nova_falta_cruza_nivel(ambiente):
     main.executar()
     PortalFalso.faltas_extra = 2
     main.executar()
-    assert len(enviados) == 2 and "ESD_I: 18 faltas, no limite" in enviados[1]
+    assert len(enviados) == 2 and "Estruturas de Dados 1: 18 faltas, no limite" in enviados[1]
     hist = [h for h in estado(pasta)["historico"] if h["sigla"] == "ESD_I"]
     assert [h["total"] for h in hist] == [16, 18]
 
