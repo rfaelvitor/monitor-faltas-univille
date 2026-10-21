@@ -2,6 +2,7 @@ name: Testes
 
 on:
   push:
+    branches-ignore: [painel]  # o branch painel só recebe o painel publicado, sem código pra testar
   pull_request:
 
 jobs:
