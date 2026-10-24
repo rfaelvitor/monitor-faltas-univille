@@ -155,7 +155,7 @@ def montar_erro(mensagem):
     corpo = (
         "<div style='font-family:Arial,sans-serif;font-size:14px'>"
         f"<p>A verificação falhou com o erro:</p><pre>{html.escape(mensagem)}</pre>"
-        "<p>Quando estiver no computador, rode de novo: <code>powershell -ExecutionPolicy Bypass -File %USERPROFILE%\.monitor-faltas\rodar.ps1 -Forcar</code>. Se repetir por vários dias, veja o log em <code>%USERPROFILE%\.monitor-faltas\logs\ultima-execucao.log</code>.</p></div>"
+        "<p>Quando estiver no computador, rode de novo: <code>powershell -ExecutionPolicy Bypass -File %USERPROFILE%\\.monitor-faltas\\rodar.ps1 -Forcar</code>. Se repetir por vários dias, veja o log em <code>%USERPROFILE%\\.monitor-faltas\\logs\\ultima-execucao.log</code>.</p></div>"
     )
     return assunto, corpo
 

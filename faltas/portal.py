@@ -171,7 +171,6 @@ class Portal:
             raise DesafioCaptcha(
                 "O Google pediu o desafio de imagens no login (reCAPTCHA) e ninguém resolveu a tempo. "
                 "Rode o monitor de novo quando estiver no computador e resolva o desafio na janela do navegador."
-            )."
             )
         if parser.tem_formulario_login(p.content()):
             raise ErroLogin("Login não concluído: confira UNIVILLE_USUARIO e UNIVILLE_SENHA")
