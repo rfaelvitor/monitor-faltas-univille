@@ -169,9 +169,9 @@ class Portal:
         print(f"Login parado em: {p.title()!r} (desafio visível: {desafio_apareceu})")
         if desafio_apareceu:
             raise DesafioCaptcha(
-                "O Google pediu um desafio de imagem no login (reCAPTCHA). "
-                "Isso costuma acontecer com IPs de servidor; tente de novo mais tarde "
-                "ou rode o monitor no seu computador (README)."
+                "O Google pediu o desafio de imagens no login (reCAPTCHA) e ninguém resolveu a tempo. "
+                "Rode o monitor de novo quando estiver no computador e resolva o desafio na janela do navegador."
+            )."
             )
         if parser.tem_formulario_login(p.content()):
             raise ErroLogin("Login não concluído: confira UNIVILLE_USUARIO e UNIVILLE_SENHA")
