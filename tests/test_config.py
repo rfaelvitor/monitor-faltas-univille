@@ -33,3 +33,10 @@ def test_sessao_desligada_por_padrao_e_navegador(monkeypatch):
     cfg = Config.carregar()
     assert cfg.navegador == "firefox" and cfg.perfil == "~/.monitor-faltas/perfil-firefox"
 
+
+def test_firefox_perfil(monkeypatch):
+    _base(monkeypatch)
+    monkeypatch.setenv("HEADLESS", "0")
+    monkeypatch.setenv("NAVEGADOR", "firefox-perfil")
+    cfg = Config.carregar()
+    assert cfg.navegador == "firefox-perfil" and cfg.perfil == "~/.monitor-faltas/perfil-firefox-real"

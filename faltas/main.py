@@ -48,8 +48,14 @@ def carregar_estado_anterior(cfg):
 
 
 def coletar(cfg):
-    with Portal(cfg.usuario, cfg.senha, headless=cfg.headless, espera_captcha=cfg.espera_captcha,
-                perfil=cfg.perfil, sessao=cfg.sessao, navegador=cfg.navegador) as portal:
+    if cfg.navegador == "firefox-perfil":
+        from .portal_firefox import PortalFirefox
+        navegador = PortalFirefox(cfg.usuario, cfg.senha, headless=cfg.headless, espera_captcha=cfg.espera_captcha,
+                                  perfil=cfg.perfil, origem=cfg.perfil_origem)
+    else:
+        navegador = Portal(cfg.usuario, cfg.senha, headless=cfg.headless, espera_captcha=cfg.espera_captcha,
+                           perfil=cfg.perfil, sessao=cfg.sessao, navegador=cfg.navegador)
+    with navegador as portal:
         portal.login()
         disciplinas = parser.filtrar_semestre(parser.ler_disciplinas(portal.home()), cfg.semestre)
         if not disciplinas:

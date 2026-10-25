@@ -108,7 +108,8 @@ Fica em `%USERPROFILE%\.monitor-faltas\.env` (abra com o Bloco de Notas). O inst
 | `LIMITES_ESPECIFICOS` | vazio | Limite diferente por sigla, ex: `FDIA=20,EIXO-III=20` |
 | `SEMESTRE` | o mais recente | Forçar um semestre, ex: `2026-2` |
 | `ESPERA_CAPTCHA` | `240` | Segundos que o script espera você resolver o desafio de imagens |
-| `NAVEGADOR` | `chromium` | `firefox` troca o navegador usado no login. Útil se o Chromium pedir captcha demais |
+| `NAVEGADOR` | `chromium` | `firefox` usa o Firefox do Playwright. `firefox-perfil` usa o Firefox instalado no Windows com uma cópia do seu perfil (cookies e histórico), que foi o único jeito que entrou sem captcha nos testes |
+| `PERFIL_FIREFOX_ORIGEM` | perfil padrão do Firefox | Só com `firefox-perfil`: pasta do perfil a copiar |
 | `SESSAO_SALVA` | vazio | Caminho de um arquivo pra guardar o cookie de sessão do portal. Desligado porque a sessão expira em ~24h |
 | `PERFIL_NAVEGADOR` | `~/.monitor-faltas/perfil` | Pasta do perfil do navegador. `0` desliga (navegador novo a cada vez, mais captcha) |
 

@@ -29,8 +29,10 @@ class DesafioCaptcha(ErroLogin):
 
 
 def _decodificar(resposta):
-    corpo = resposta.body()
-    tipo = resposta.headers.get("content-type", "")
+    return decodificar_bytes(resposta.body(), resposta.headers.get("content-type", ""))
+
+
+def decodificar_bytes(corpo, tipo):
     m = re.search(r"charset=([\w-]+)", tipo)
     charset = (m.group(1) if m else "windows-1252").lower()
     if charset in ("iso-8859-1", "latin-1"):

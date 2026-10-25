@@ -70,6 +70,7 @@ class Config:
     perfil: str | None = None
     sessao: str | None = None
     navegador: str = "chromium"
+    perfil_origem: str | None = None
     github_token: str | None = None
     github_repo: str | None = None
 
@@ -78,8 +79,9 @@ class Config:
         gmail = _env("GMAIL_USUARIO")
         headless = _env("HEADLESS", "1") != "0"
         navegador = _env("NAVEGADOR", "chromium").lower()
-        if navegador not in ("chromium", "firefox"):
-            raise ValueError("NAVEGADOR deve ser chromium ou firefox")
+        if navegador not in ("chromium", "firefox", "firefox-perfil"):
+            raise ValueError("NAVEGADOR deve ser chromium, firefox ou firefox-perfil")
+        sufixo = {"chromium": "", "firefox": "-firefox", "firefox-perfil": "-firefox-real"}[navegador]
         return cls(
             usuario=_env("UNIVILLE_USUARIO", obrigatorio=True),
             senha=_env("UNIVILLE_SENHA", obrigatorio=True),
@@ -102,7 +104,9 @@ class Config:
             # navegador visível = seu PC, então guarda o perfil por padrão. "0" desliga
             github_token=_env("GITHUB_TOKEN"),
             github_repo=_env("GITHUB_REPO"),
-            perfil=_perfil(_env("PERFIL_NAVEGADOR", "" if headless else f"~/.monitor-faltas/perfil{'-firefox' if navegador == 'firefox' else ''}")),
+            perfil=_perfil(_env("PERFIL_NAVEGADOR", "" if headless else f"~/.monitor-faltas/perfil{sufixo}")),
+            # firefox-perfil: de onde copiar o perfil do Firefox de uso normal (vazio = o perfil padrão)
+            perfil_origem=_env("PERFIL_FIREFOX_ORIGEM"),
             # testado em outubro/2026: a sessão do portal expira em ~24h, então vem desligado. Só liga com SESSAO_SALVA=caminho
             sessao=_perfil(_env("SESSAO_SALVA", "")),
             navegador=navegador,

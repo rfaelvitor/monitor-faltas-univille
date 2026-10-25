@@ -46,8 +46,11 @@ $comum = @("run", "--python", "3.12", "--with-requirements", "requirements.txt",
 # NAVEGADOR=firefox no .env (ou na variavel de ambiente) troca o Chromium pelo Firefox do Playwright
 $nav = $env:NAVEGADOR
 if (-not $nav) { $m = Select-String -Path (Join-Path $base ".env") -Pattern "^NAVEGADOR=(.+)$" -ErrorAction SilentlyContinue; if ($m) { $nav = $m.Matches[0].Groups[1].Value.Trim() } }
-if ($nav -ne "firefox") { $nav = "chromium" }
-Rodar ($comum + @("-m", "playwright", "install", $nav)) | Out-Null
+# firefox-perfil usa o Firefox instalado no Windows (Selenium), nao precisa baixar navegador
+if ($nav -ne "firefox-perfil") {
+    if ($nav -ne "firefox") { $nav = "chromium" }
+    Rodar ($comum + @("-m", "playwright", "install", $nav)) | Out-Null
+}
 $saida = Rodar ($comum + @("-m", "faltas"))
 "=== fim, codigo de saida $saida ===" | Out-File $log -Append -Encoding utf8
 exit $saida
