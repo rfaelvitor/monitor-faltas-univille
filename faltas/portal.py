@@ -39,7 +39,8 @@ def _decodificar(resposta):
 
 
 class Portal:
-    def __init__(self, usuario, senha, headless=True, espera_captcha=0, perfil=None, sessao=None):
+    def __init__(self, usuario, senha, headless=True, espera_captcha=0, perfil=None, sessao=None, navegador="chromium"):
+        self.navegador = navegador
         self.perfil = perfil
         # arquivo com o cookie de sessão do portal: tenta reaproveitar o login do dia anterior
         self.sessao = Path(sessao).expanduser() if sessao else None
@@ -59,10 +60,10 @@ class Portal:
             # Reaproveita a sessão do portal quando ainda vale e deixa o Google menos desconfiado
             pasta = Path(self.perfil).expanduser()
             pasta.mkdir(parents=True, exist_ok=True)
-            self._ctx = self._pw.chromium.launch_persistent_context(str(pasta), headless=self.headless, **opcoes)
+            self._ctx = getattr(self._pw, self.navegador).launch_persistent_context(str(pasta), headless=self.headless, **opcoes)
             self._browser = None
         else:
-            self._browser = self._pw.chromium.launch(headless=self.headless)
+            self._browser = getattr(self._pw, self.navegador).launch(headless=self.headless)
             self._ctx = self._browser.new_context(**opcoes)
         self.page = self._ctx.pages[0] if self._ctx.pages else self._ctx.new_page()
         self._carregar_sessao()

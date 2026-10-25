@@ -28,7 +28,7 @@ O login do portal tem reCAPTCHA do Google. Em servidores (GitHub Actions e parec
 
 No seu computador ele abre um navegador de verdade e usa sempre o mesmo perfil (`%USERPROFILE%\.monitor-faltas\perfil`). Isso ajuda um pouco, mas o Google detecta que o navegador está sendo controlado por um programa, então na prática ele pede o desafio de imagens na maioria dos dias. A janela fica aberta, você resolve, e o script espera até 4 minutos e faz o resto sozinho.
 
-O cookie de sessão do portal some quando o navegador fecha. Por isso o monitor guarda esse cookie num arquivo (`%USERPROFILE%\.monitor-faltas\sessao.json`) e tenta reaproveitá-lo na execução seguinte. Se o servidor ainda aceitar, pula o login e o captcha. Se não aceitar, faz o login normal. Cada execução anota o resultado em `sessao-teste.log`, na mesma pasta, pra ver em quanto tempo a sessão deixa de valer.
+A sessão do portal não dá pra guardar de um dia pro outro. Em testes (outubro/2026) ela expirou em até 24 horas, e o portal bloqueia (erro 403) acessos sem navegador, então não dá nem pra mantê-la viva por fora. O recurso de salvar a sessão existe, mas vem desligado (`SESSAO_SALVA`).
 
 ## Como usar (passo a passo)
 
@@ -108,7 +108,8 @@ Fica em `%USERPROFILE%\.monitor-faltas\.env` (abra com o Bloco de Notas). O inst
 | `LIMITES_ESPECIFICOS` | vazio | Limite diferente por sigla, ex: `FDIA=20,EIXO-III=20` |
 | `SEMESTRE` | o mais recente | Forçar um semestre, ex: `2026-2` |
 | `ESPERA_CAPTCHA` | `240` | Segundos que o script espera você resolver o desafio de imagens |
-| `SESSAO_SALVA` | `~/.monitor-faltas/sessao.json` | Arquivo com o cookie de sessão do portal. `0` desliga e o login é feito toda vez |
+| `NAVEGADOR` | `chromium` | `firefox` troca o navegador usado no login. Útil se o Chromium pedir captcha demais |
+| `SESSAO_SALVA` | vazio | Caminho de um arquivo pra guardar o cookie de sessão do portal. Desligado porque a sessão expira em ~24h |
 | `PERFIL_NAVEGADOR` | `~/.monitor-faltas/perfil` | Pasta do perfil do navegador. `0` desliga (navegador novo a cada vez, mais captcha) |
 
 ## Rodar manualmente (qualquer sistema)
@@ -164,12 +165,11 @@ Rodar os testes: `pip install -r requirements-dev.txt && python -m pytest`
 - Matrícula, senha do portal, senha de app do Gmail e token ficam só no `.env` do seu computador
 - O token do GitHub só tem permissão de escrever arquivos no seu repositório do monitor
 - O painel publicado contém só um arquivo cifrado com AES-256-GCM. Sem a `SENHA_PAINEL` não dá pra ler. Use uma senha boa
-- O arquivo `sessao.json` guarda o cookie de sessão do portal, que vale como a sua senha enquanto a sessão estiver ativa. Fica só no seu computador. Não copie nem compartilhe a pasta `.monitor-faltas`
 - O script só lê páginas. Não altera nada no portal
 
 ## Limitações
 
-- **reCAPTCHA no login.** Navegador controlado por programa é detectado pelo Google, então espere o desafio de imagens na maioria dos dias. O perfil salvo pode reduzir um pouco, mas não elimina. O reaproveitamento da sessão do portal está em teste. Se ninguém resolver em 4 minutos, a verificação do dia falha e chega um e-mail de erro. Por isso o horário da tarefa deve ser um em que você está no computador
+- **reCAPTCHA no login.** Navegador controlado por programa é detectado pelo Google, então espere o desafio de imagens na maioria dos dias. O perfil salvo pode reduzir um pouco, mas não elimina. Se ninguém resolver em 4 minutos, a verificação do dia falha e chega um e-mail de erro. Por isso o horário da tarefa deve ser um em que você está no computador
 - **Token do GitHub vence.** Quando vencer, os e-mails continuam mas o painel online para de atualizar (o log mostra o erro). Gere outro token e troque no `.env`
 - **Computador precisa ligar.** Se o PC ficar dias desligado, não há verificação nesses dias
 - **Mudança de layout.** Se a Univille mudar o portal, a leitura pode quebrar. Aí chega um e-mail de erro e é preciso ajustar o `parser.py`

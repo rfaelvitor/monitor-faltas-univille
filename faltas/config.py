@@ -69,6 +69,7 @@ class Config:
     pasta_saida: str = "site"
     perfil: str | None = None
     sessao: str | None = None
+    navegador: str = "chromium"
     github_token: str | None = None
     github_repo: str | None = None
 
@@ -76,6 +77,9 @@ class Config:
     def carregar(cls):
         gmail = _env("GMAIL_USUARIO")
         headless = _env("HEADLESS", "1") != "0"
+        navegador = _env("NAVEGADOR", "chromium").lower()
+        if navegador not in ("chromium", "firefox"):
+            raise ValueError("NAVEGADOR deve ser chromium ou firefox")
         return cls(
             usuario=_env("UNIVILLE_USUARIO", obrigatorio=True),
             senha=_env("UNIVILLE_SENHA", obrigatorio=True),
@@ -98,9 +102,10 @@ class Config:
             # navegador visível = seu PC, então guarda o perfil por padrão. "0" desliga
             github_token=_env("GITHUB_TOKEN"),
             github_repo=_env("GITHUB_REPO"),
-            perfil=_perfil(_env("PERFIL_NAVEGADOR", "" if headless else "~/.monitor-faltas/perfil")),
-            # guarda o cookie de sessão do portal pra tentar pular o login no dia seguinte. "0" desliga
-            sessao=_perfil(_env("SESSAO_SALVA", "" if headless else "~/.monitor-faltas/sessao.json")),
+            perfil=_perfil(_env("PERFIL_NAVEGADOR", "" if headless else f"~/.monitor-faltas/perfil{'-firefox' if navegador == 'firefox' else ''}")),
+            # testado em outubro/2026: a sessão do portal expira em ~24h, então vem desligado. Só liga com SESSAO_SALVA=caminho
+            sessao=_perfil(_env("SESSAO_SALVA", "")),
+            navegador=navegador,
         )
 
     def limite_de(self, sigla):
