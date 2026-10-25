@@ -157,7 +157,12 @@ class PortalFirefox:
                     desafio = True
                     if self.espera_captcha:
                         print(f"Desafio de imagens na tela, esperando até {self.espera_captcha}s alguém resolver")
-                        self.d.switch_to.window(self.d.current_window_handle)
+                        try:
+                            # traz a janela pra frente, senão ela fica escondida atrás das outras
+                            self.d.minimize_window()
+                            self.d.maximize_window()
+                        except Exception:
+                            pass
                         prazo = time.time() + self.espera_captcha
             except Exception:
                 pass
