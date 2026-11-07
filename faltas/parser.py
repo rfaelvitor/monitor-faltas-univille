@@ -22,8 +22,8 @@ def nome_curto(nome):
         return nome.strip()
     saida = []
     for i, p in enumerate(palavras):
-        if i == len(palavras) - 1 and i > 0 and p.upper() in ROMANOS:
-            saida.append(str(ROMANOS[p.upper()]))  # algarismo romano no fim vira número
+        if i > 0 and p.upper() in ROMANOS:
+            saida.append(str(ROMANOS[p.upper()]))  # algarismo romano vira número, no fim ou no meio
         elif i > 0 and p.lower() in MINUSCULAS:
             saida.append(p.lower())
         else:

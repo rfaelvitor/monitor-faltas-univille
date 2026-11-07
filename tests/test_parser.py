@@ -66,3 +66,5 @@ def test_nome_curto():
     assert parser.nome_curto("ALGORITMOS [ALG] - GERENCIAL-ENGETEC (2026-1)") == "Algoritmos"
     assert parser.nome_curto("INTRODUÇÃO À ENGENHARIA [IEN] - X (2026-2)") == "Introdução à Engenharia"
     assert parser.nome_curto("ALGORITMOS (2026-1)") == "Algoritmos"
+    assert parser.nome_curto("VIVÊNCIAS DE EXTENSÃO IV - PROJETO INTEGRADOR II [VEIV_PI] - GERENCIAL-ENGETEC (2026-2)") == "Vivências de Extensão 4 - Projeto Integrador 2"
+    assert parser.nome_curto("EIXO INSTITUCIONAL III - SOCIEDADE, MEIO AMBIENTE E SUSTENTABILIDADE [EIXO-III] - X (2026-2)") == "Eixo Institucional 3 - Sociedade, Meio Ambiente e Sustentabilidade"
