@@ -1,5 +1,6 @@
 import html
 import smtplib
+import time
 from email.message import EmailMessage
 
 from datetime import datetime
@@ -170,8 +171,17 @@ def enviar(cfg, assunto, corpo_html):
     msg["To"] = cfg.email_destino
     msg.set_content("Abra este e-mail num cliente com suporte a HTML.")
     msg.add_alternative(corpo_html, subtype="html")
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as smtp:
-        smtp.login(cfg.gmail_usuario, cfg.gmail_senha_app)
-        smtp.send_message(msg)
-    print("E-mail enviado")
-    return True
+    erro = None
+    for tentativa in range(3):
+        try:
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=30) as smtp:
+                smtp.login(cfg.gmail_usuario, cfg.gmail_senha_app)
+                smtp.send_message(msg)
+            print("E-mail enviado")
+            return True
+        except (OSError, smtplib.SMTPException) as e:
+            # rede instável não pode derrubar a verificação: quem chama guarda o aviso pra próxima
+            erro = e
+            time.sleep(10 * (tentativa + 1))
+    print(f"Não consegui enviar o e-mail: {type(erro).__name__}: {erro}")
+    return False

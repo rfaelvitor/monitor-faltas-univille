@@ -52,3 +52,15 @@ def test_cripto_ida_e_volta():
     pacote = cripto.cifrar(dados, "segredo")
     assert "ção" not in str(pacote)
     assert cripto.decifrar(pacote, "segredo") == dados
+
+
+def test_email_sem_rede_nao_derruba(monkeypatch):
+    from types import SimpleNamespace
+    from faltas import email_alerta
+
+    def falha(*a, **k):
+        raise TimeoutError("sem rede")
+    monkeypatch.setattr(email_alerta.smtplib, "SMTP_SSL", falha)
+    monkeypatch.setattr(email_alerta.time, "sleep", lambda s: None)
+    cfg = SimpleNamespace(email_configurado=True, gmail_usuario="a@b.c", email_destino="a@b.c", gmail_senha_app="x")
+    assert email_alerta.enviar(cfg, "assunto", "<p>oi</p>") is False
