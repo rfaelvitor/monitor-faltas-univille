@@ -141,7 +141,7 @@ html{scroll-behavior:smooth}
   <header id="topo">
     <span class="eyebrow">Como o monitor funciona hoje</span>
     <h1>Monitor de faltas por dentro</h1>
-    <span class="atualizado">Atualizado em 25/10/2026, 21h30 (horário de Brasília)</span>
+    <span class="atualizado">Atualizado em 08/11/2026, 20h30 (horário de Brasília)</span>
     <p class="lead">O caminho que o seu número de faltas e os seus trabalhos fazem, desde o portal da Univille até virar um e-mail e um painel no celular. Roda no seu notebook com Windows, uma vez por dia, pelo Agendador de Tarefas. Em uso desde 18/10/2026, com a primeira execução completa feita nesse dia.</p>
     <div class="legend" aria-label="Legenda">
       <span><i style="background:var(--auto)"></i>automático</span>
@@ -171,14 +171,14 @@ html{scroll-behavior:smooth}
     <div class="diagram">
 <pre class="mermaid">
 flowchart TD
-  T["Agendador de Tarefas do Windows<br/>segunda a sexta às 20h"] --> V["rodar.vbs e rodar.ps1<br/>atualizam o código e chamam o Python"]
+  T["Agendador de Tarefas do Windows<br/>a cada 2h, das 8h às 22h"] --> V["rodar.vbs e rodar.ps1<br/>atualizam o código e chamam o Python"]
   V --> J{"Já verificou hoje?"}
   J -->|"sim"| Z["Termina sem fazer nada"]
   J -->|"não"| L["Seu Firefox, com cópia do seu perfil,<br/>faz login no portal"]
   L --> C{"Apareceu o captcha?"}
   C -->|"sim"| Y["Você resolve na janela<br/>(espera até 15 minutos)"]
   C -->|"passou direto"| D
-  Y -->|"não resolveu"| X["E-mail de erro<br/>(no máximo 1 por dia)"]
+  Y -->|"não resolveu"| X["Tenta de novo em 2h<br/>(e-mail de erro só às 22h)"]
   Y --> D["Lista as disciplinas do semestre"]
   D --> F["Faltas: soma 1º e 2º bimestre<br/>de cada disciplina"]
   D --> W["Trabalhos de cada disciplina"]
@@ -197,7 +197,7 @@ flowchart TD
 
     <div class="clock">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-      <p><b>Quem dá a partida:</b> a tarefa <b>"Monitor de faltas Univille"</b> do Agendador de Tarefas do Windows, de <b>segunda a sexta às 20h</b> (horário de Brasília). Fim de semana não roda, pra não pedir captcha quando você não está. Se o notebook estiver desligado nessa hora, ela roda assim que você ligar. Não dá pra rodar na nuvem: o Google desconfia do endereço dos servidores e pede o desafio de imagens em toda execução, então o monitor precisa abrir o navegador no seu computador, onde você está para resolver o captcha.</p>
+      <p><b>Quem dá a partida:</b> a tarefa <b>"Monitor de faltas Univille"</b> do Agendador de Tarefas do Windows, <b>a cada 2 horas, das 8h às 22h</b>, todos os dias. A primeira tentativa que der certo encerra o dia, e as seguintes terminam sem abrir o navegador. Se o notebook estiver desligado num horário, a tentativa roda assim que você ligar. Não dá pra rodar na nuvem: o Google desconfia do endereço dos servidores e pede o desafio de imagens em toda execução, então o monitor precisa abrir o navegador no seu computador, onde você está para resolver o captcha.</p>
     </div>
 
     <ol class="flow">
@@ -228,13 +228,13 @@ flowchart TD
       <li class="st" data-k="you">
         <div class="dot"></div>
         <div class="body">
-          <div class="head"><span class="num">3</span><h3>Login e captcha</h3><span class="tag you">você, quando o Google pedir</span></div>
-          <p>Atualiza os cookies e o histórico de uma <b>cópia do perfil do seu Firefox</b> (<code>~/.monitor-faltas/perfil-firefox-real</code>), abre o Firefox instalado no Windows com essa cópia e entra com matrícula e senha. Com o histórico e os cookies do Google de verdade, o reCAPTCHA confia mais. Se o desafio de imagens aparecer mesmo assim, a janela vem pra frente e o script espera <b>até 15 minutos</b> você resolver. O monitor não tenta burlar o captcha. O seu Firefox pode ficar aberto e o seu perfil não é alterado.</p>
+          <div class="head"><span class="num">3</span><h3>Login e captcha</h3><span class="tag you">você, só se estiver lá</span></div>
+          <p>Atualiza os cookies e o histórico de uma <b>cópia do perfil do seu Firefox</b> (<code>~/.monitor-faltas/perfil-firefox-real</code>), abre o Firefox instalado no Windows com essa cópia e entra com matrícula e senha. Com o histórico e os cookies do Google de verdade, o reCAPTCHA confia mais. Se o desafio de imagens aparecer mesmo assim, a janela vem pra frente e o script espera <b>até 15 minutos</b> você resolver. O monitor não tenta burlar o captcha. O seu Firefox pode ficar aberto e o seu perfil não é alterado. Se o Firefox nem abrir, a tentativa segue pelo Chromium.</p>
           <div class="meta"><span class="tool">Selenium</span><span class="tool">Firefox</span><span class="file">faltas/portal_firefox.py</span></div>
         </div>
         <div class="outs">
           <div class="out you"><small>captcha</small>Você resolve na janela do navegador</div>
-          <div class="out stop"><small>ninguém resolveu em 15 min, ou senha errada</small>A verificação do dia falha e chega um e-mail de erro (no máximo um por dia)</div>
+          <div class="out stop"><small>ninguém resolveu em 15 min</small>Fica pra próxima tentativa, 2h depois. E-mail de erro só se nada der certo até as 22h</div>
         </div>
       </li>
 
@@ -354,7 +354,7 @@ flowchart TD
           <tr><td>Falta 1 dia para o prazo</td><td><span class="pill you">e-mail</span></td><td>Estágio 3</td></tr>
           <tr><td>Prazo passou sem entrega</td><td><span class="pill stop">e-mail, uma vez</span></td><td>Estágio 4</td></tr>
           <tr><td>Trabalho com resposta enviada</td><td><span class="pill ok">sem aviso</span></td><td>Em equipe, só conta com "resposta final"</td></tr>
-          <tr><td>Erro (senha, captcha, portal fora do ar)</td><td><span class="pill stop">e-mail de erro</span></td><td>No máximo um por dia</td></tr>
+          <tr><td>Erro (senha, captcha, portal fora do ar)</td><td><span class="pill stop">e-mail de erro</span></td><td>Só a partir das 22h (<code>HORA_ULTIMA_TENTATIVA</code>), no máximo um por dia. Falha no envio do Gmail não derruba a verificação</td></tr>
         </tbody>
       </table>
     </div>
@@ -366,7 +366,7 @@ flowchart TD
       <table>
         <thead><tr><th>Ferramenta</th><th>Pra que serve aqui</th><th>O que você precisa ter</th></tr></thead>
         <tbody>
-          <tr><td>Agendador de Tarefas do Windows</td><td>Dispara o monitor de segunda a sexta às 20h</td><td>Um notebook com Windows, ligado nesse horário</td></tr>
+          <tr><td>Agendador de Tarefas do Windows</td><td>Dispara o monitor a cada 2h, das 8h às 22h</td><td>Um notebook com Windows, ligado nesse horário</td></tr>
           <tr><td>PowerShell + VBScript</td><td>Atualizam o código e abrem o Python sem roubar o foco</td><td>Nada, já vêm no Windows</td></tr>
           <tr><td>uv</td><td>Baixa um Python portátil e instala as bibliotecas</td><td>Nada, o instalador cuida</td></tr>
           <tr><td>Selenium + Firefox</td><td>Faz o login e lê o portal no seu Firefox, com uma cópia do seu perfil</td><td>Firefox instalado. O driver vem sozinho</td></tr>
@@ -374,7 +374,7 @@ flowchart TD
           <tr><td>Gmail (SMTP)</td><td>Envia os alertas e os erros</td><td>Senha de app de 16 caracteres</td></tr>
           <tr><td>GitHub (API e Pages)</td><td>Hospeda o código e o painel</td><td>Repositório público e um token fine-grained só com Contents: Read and write</td></tr>
           <tr><td>cryptography (AES-GCM)</td><td>Cifra os dados antes de publicar</td><td>Uma senha boa em <code>SENHA_PAINEL</code></td></tr>
-          <tr><td>pytest</td><td>35 testes com HTML de exemplo, sem acessar o portal</td><td>Nada, rodam a cada push no GitHub Actions</td></tr>
+          <tr><td>pytest</td><td>38 testes com HTML de exemplo, sem acessar o portal</td><td>Nada, rodam a cada push no GitHub Actions</td></tr>
         </tbody>
       </table>
     </div>
@@ -403,6 +403,8 @@ flowchart TD
       <li><div><b>Teste de sessão salva (21 a 24/10)</b><p>A ideia era guardar o cookie do login e entrar sem captcha no dia seguinte. Em todas as quatro medições a sessão já tinha expirado (21,8h e três vezes 24,0h depois do login). Uma tarefa extra que acessava o portal a cada 30 minutos pra manter a sessão viva recebeu erro 403 em todas as tentativas: o portal bloqueia acesso sem navegador. As duas coisas foram desligadas e a tarefa extra removida.</p><div class="meta"><span class="file">faltas/portal.py</span><span class="file">sessao-teste.log</span></div></div></li>
       <li><div><b>Só dias de semana</b><p>A tarefa das 20h passou a rodar de segunda a sexta. No fim de semana você não quer resolver captcha, e rodar sem ninguém só gerava e-mail de erro.</p><div class="meta"><span class="tool">Set-ScheduledTask</span></div></div></li>
       <li><div><b>Login pelo seu Firefox (25/10)</b><p>O Firefox do Playwright, novo e sem histórico, pediu captcha na primeira tentativa. O passo seguinte foi usar o Firefox instalado, controlado pelo Selenium, com uma cópia do seu perfil. No teste isolado entrou sem captcha. Na execução completa logo depois, já no quarto login em 20 minutos, pediu. Precisa de dias normais pra saber se ajuda de verdade.</p><div class="meta"><span class="tool">Selenium</span><span class="tool">Firefox</span><span class="file">faltas/portal_firefox.py</span></div></div></li>
+      <li><div><b>Falhas de rede e de navegador (03 a 07/11)</b><p>Em 03/11 o Firefox fechou sozinho ao abrir. Em 06/11 o login entrou sem captcha, mas o Gmail não respondeu naquela rede e a execução parou sem publicar o painel. O envio passou a tentar 3 vezes e, se falhar, guarda o aviso pra próxima sem derrubar a verificação. Em outra rede, no dia 07, o e-mail saiu.</p><div class="meta"><span class="file">faltas/email_alerta.py</span></div></div></li>
+      <li><div><b>Várias tentativas por dia (08/11)</b><p>A principal causa de dias perdidos era ter uma chance só, às 20h. A tarefa passou a rodar a cada 2h, das 8h às 22h, todos os dias. O e-mail de erro só sai a partir das 22h, no máximo um por dia. Se o Firefox não abrir, a tentativa segue pelo Chromium. Cada tentativa deixa uma linha no <code>historico.log</code>.</p><div class="meta"><span class="tool">Task Scheduler</span><span class="file">faltas/main.py</span><span class="file">windows/rodar.ps1</span></div></div></li>
     </ol>
   </section>
 
@@ -427,7 +429,7 @@ flowchart TD
 │   ├── instalar.ps1        <span>instalador de um comando</span>
 │   ├── rodar.ps1           <span>atualiza o código e roda</span>
 │   └── rodar.vbs           <span>chamado pelo Agendador</span>
-├── tests/                  <span>35 testes com HTML de exemplo</span>
+├── tests/                  <span>38 testes com HTML de exemplo</span>
 └── docs/                   <span>imagem do painel e esta página</span></pre>
       </div>
 
@@ -455,6 +457,7 @@ flowchart TD
           <dt>NIVEIS_ALERTA</dt><dd>10,12,14,16,18</dd>
           <dt>NAVEGADOR</dt><dd><code>firefox-perfil</code> no seu notebook. <code>chromium</code> é o padrão do projeto</dd>
           <dt>ESPERA_CAPTCHA</dt><dd>900 segundos no seu notebook</dd>
+          <dt>HORA_ULTIMA_TENTATIVA</dt><dd>22. Antes disso, erro fica só no log</dd>
           <dt>PERFIL_NAVEGADOR</dt><dd>Pasta da cópia do perfil</dd>
         </dl>
       </div>
@@ -464,7 +467,7 @@ flowchart TD
         <dl class="kv">
           <dt>Credenciais</dt><dd>Só no <code>.env</code> do seu computador</dd>
           <dt>Perfil do navegador</dt><dd><code>~/.monitor-faltas/perfil-firefox-real</code>, cópia do seu Firefox com senhas e cookies. Não compartilhe essa pasta</dd>
-          <dt>Log</dt><dd><code>~/.monitor-faltas/logs/ultima-execucao.log</code>, reescrito a cada execução</dd>
+          <dt>Log</dt><dd><code>~/.monitor-faltas/logs/ultima-execucao.log</code>, reescrito a cada execução, e <code>historico.log</code>, uma linha por tentativa</dd>
           <dt>Estado</dt><dd>Dados cifrados em <code>~/.monitor-faltas/site</code>, com o que já foi avisado</dd>
           <dt>Painel online</dt><dd>Branch <code>painel</code> do repositório, só o arquivo cifrado</dd>
         </dl>
@@ -493,7 +496,7 @@ flowchart TD
       <div class="panel a">
         <h3>O monitor faz</h3>
         <ul>
-          <li>Roda de segunda a sexta às 20h, ou quando o notebook liga</li>
+          <li>Tenta a cada 2h, das 8h às 22h, até dar certo no dia</li>
           <li>Usa uma cópia do seu Firefox pra o Google pedir menos captcha</li>
           <li>Atualiza o próprio código pelo repositório</li>
           <li>Entra no portal, lê faltas e trabalhos de todas as disciplinas</li>
@@ -507,8 +510,8 @@ flowchart TD
       <div class="panel y">
         <h3>Fica com você</h3>
         <ul>
-          <li>Deixar o notebook ligado por volta das 20h nos dias de semana</li>
-          <li>Resolver o desafio de imagens quando o Google pedir e você estiver lá</li>
+          <li>Ligar o notebook em algum momento do dia</li>
+          <li>Resolver o desafio de imagens só se quiser, quando estiver lá</li>
           <li>Atualizar a senha no <code>.env</code> se mudar no portal</li>
           <li>Ajustar o parser se a Univille mudar o portal</li>
           <li>Conferir se a falta justificada deve ou não contar</li>
@@ -519,19 +522,19 @@ flowchart TD
 
   <section aria-labelledby="avaliacao">
     <h2 id="avaliacao">Avaliação crítica</h2>
-    <p class="sub">Uma leitura honesta de onde o projeto está, do que esperar e do que pode estar passando despercebido. Primeira versão em 18/10. Revisada em 25/10, com a primeira semana de uso às 20h.</p>
+    <p class="sub">Uma leitura honesta de onde o projeto está, do que esperar e do que pode estar passando despercebido. Primeira versão em 18/10. Revisada em 25/10, com a primeira semana de uso, e em 08/11, depois da mudança pra várias tentativas por dia.</p>
     <div class="docs">
       <div class="panel">
         <h3>Como estamos</h3>
-        <p><b>Quando entra, funciona bem.</b> Nas execuções que passaram do login, as 6 disciplinas e os 18 trabalhos foram lidos sem erro, o painel foi publicado e os avisos de nível saíram certos: Estruturas de Dados 1 chegou a 18 faltas em 20/10, e Projeto Integrador e Fábrica de Software subiram de nível em 22/10. Nenhum erro de token ou de publicação do painel na semana.</p>
-        <p><b>O login é o gargalo.</b> Entre 19 e 24/10 a tarefa das 20h rodou 6 vezes: 3 entraram sem captcha (21, 22 e 23/10) e 3 pararam no desafio de imagens (19, 20 e 24/10), sem ninguém pra resolver. Em nenhuma das 6 você estava no computador às 20h. Na prática, metade dos dias ficou sem verificação automática.</p>
-        <p><b>O que não deu certo:</b> guardar a sessão (expira em cerca de 24h), manter a sessão viva (o portal responde 403) e o Firefox novo do Playwright (pediu captcha). <b>O que está em teste:</b> o seu Firefox com uma cópia do seu perfil. Um teste sem captcha e um com, este depois de vários logins seguidos. Ainda é cedo pra dizer se resolve.</p>
+        <p><b>Quando entra, funciona bem.</b> Leitura das 6 disciplinas e dos trabalhos, painel publicado e avisos de nível certos em todas as execuções que passaram do login. Os nomes nos e-mails agora saem curtos, com números romanos convertidos.</p>
+        <p><b>O problema era a chance única.</b> Até 08/11 o monitor tinha uma tentativa por dia, às 20h. Notebook desligado (04 a 06/11), captcha sem ninguém, Firefox que não abriu (03/11) ou Gmail bloqueado pela rede (06/11): qualquer uma dessas fazia o dia inteiro ficar sem verificação. Na prática, mais dias falharam do que deram certo.</p>
+        <p><b>O que mudou:</b> agora são até 8 tentativas por dia, sem e-mail de erro antes das 22h. O seu Firefox com perfil tem placar de 4 logins sem captcha e 2 com. A primeira tentativa no formato novo, em 08/11 às 18h, deu certo.</p>
       </div>
       <div class="panel">
         <h3>Expectativas realistas</h3>
         <ul class="lista">
-          <li><b>Captcha:</b> pelo que vimos, aparece em cerca de metade dos dias, de forma imprevisível. Nenhuma técnica testada zerou isso. Se o Firefox com seu perfil não reduzir bem, o monitor vai continuar dependendo de você em parte dos dias.</li>
-          <li><b>Dias sem verificação:</b> com captcha e ninguém no computador, o dia passa em branco e chega um e-mail de erro. Como as faltas mudam no máximo uma vez por aula, um dia em branco atrasa o aviso, mas raramente muda o quadro.</li>
+          <li><b>Captcha:</b> aparece em parte dos logins, de forma imprevisível. Com várias tentativas, um captcha às 10h não perde mais o dia: a das 12h pode passar direto. Ainda pode haver dia em que todas pedem.</li>
+          <li><b>Dias sem verificação:</b> agora só quando o notebook fica o dia todo desligado ou quando todas as tentativas falham. Aí chega um único e-mail de erro, depois das 22h.</li>
           <li><b>Quanto ajuda:</b> nos dias que entra, você não precisa abrir o portal. Nos outros, o painel mostra o último dado bom e o e-mail de erro avisa que ficou velho.</li>
           <li><b>Manutenção:</b> qualquer mudança de layout do portal quebra a leitura. O caminho pelo seu Firefox depende também do Firefox instalado e do Selenium.</li>
           <li><b>Sua situação de faltas:</b> uma disciplina já está no limite de 18. O monitor não substitui conferir com a coordenação o que conta como falta.</li>
@@ -543,7 +546,7 @@ flowchart TD
       <table>
         <thead><tr><th>Ponto</th><th>O que vimos na semana</th><th>O que sugiro</th><th>Status</th></tr></thead>
         <tbody>
-          <tr><td>1. Captcha e notebook ligado</td><td>3 de 6 execuções às 20h pararam no captcha. Sessão salva e Firefox do Playwright não ajudaram</td><td>Medir o seu Firefox com perfil por uma ou duas semanas. Se não melhorar, discutir uma nova tentativa às 22h com um único e-mail de erro</td><td><span class="pill you">em teste</span></td></tr>
+          <tr><td>1. Captcha e notebook ligado</td><td>Era a principal causa de dias perdidos, junto com a chance única às 20h</td><td>Feito: tentativas a cada 2h das 8h às 22h, seu Firefox com perfil e Chromium de reserva. Medir pelo <code>historico.log</code> por duas semanas</td><td><span class="pill you">em teste</span></td></tr>
           <tr><td>2. Token do GitHub vence</td><td>Sem erro de publicação na semana</td><td>Você deixou sem validade. Guardar o token só no <code>.env</code></td><td><span class="pill ok">decidido</span></td></tr>
           <tr><td>3. Código se atualiza sozinho pelo branch main</td><td>Funcionou em todas as execuções. Em 24/10 um commit quebrado chegou ao main e foi corrigido em seguida</td><td>Manter verificação em duas etapas no GitHub e só publicar no main com os testes passando</td><td><span class="pill you">a discutir</span></td></tr>
           <tr><td>4. Senhas no notebook</td><td>Além do <code>.env</code>, agora existe a cópia do perfil do Firefox, com cookies e senhas salvas</td><td>Aceitável num notebook pessoal. Não copiar nem compartilhar a pasta <code>.monitor-faltas</code></td><td><span class="pill you">a discutir</span></td></tr>
@@ -551,7 +554,7 @@ flowchart TD
           <tr><td>6. Faltas justificadas não são descontadas</td><td>Sem caso real na semana</td><td>Conferir no portal se alguma falta justificada entra no total de Estruturas de Dados 1</td><td><span class="pill you">a discutir</span></td></tr>
           <tr><td>7. Lista de trabalhos com mais de uma página</td><td>18 trabalhos, todos numa página só</td><td>Tratar a paginação só se aparecer</td><td><span class="pill ok">sem ação</span></td></tr>
           <tr><td>8. Termos de uso do portal</td><td>A tarefa de 30 em 30 minutos fez cerca de 60 acessos bloqueados em 24/10 e 25/10. Já foi removida</td><td>Manter só leitura, um acesso por dia útil, sem burlar o captcha</td><td><span class="pill ok">decidido</span></td></tr>
-          <tr><td>9. Falta de medição</td><td>Resolvido em parte: <code>sessao-teste.log</code> e o painel guardam o histórico, mas o log principal é reescrito a cada execução</td><td>Guardar uma linha por dia com o resultado do login (entrou, captcha, erro) pra medir o Firefox</td><td><span class="pill you">a fazer</span></td></tr>
+          <tr><td>9. Falta de medição</td><td>Resolvido em parte: <code>sessao-teste.log</code> e o painel guardam o histórico, mas o log principal é reescrito a cada execução</td><td>Feito: <code>historico.log</code> com uma linha por tentativa (ok, captcha, erro, já verificado)</td><td><span class="pill ok">feito</span></td></tr>
         </tbody>
       </table>
     </div>
@@ -565,11 +568,12 @@ flowchart TD
       <li class="done"><span class="ic">✓</span><div><b>Painel no GitHub Pages</b><br><span>Publicado pelo branch painel, só com a página e o arquivo cifrado.</span></div></li>
       <li class="done"><span class="ic">✓</span><div><b>E-mails de falha do GitHub</b><br><span>O teste automático ignora o branch painel e não falha mais a cada publicação.</span></div></li>
       <li class="done"><span class="ic">✓</span><div><b>Sessão salva testada e descartada</b><br><span>Tarefa de 30 minutos removida e <code>sessao.json</code> apagado.</span></div></li>
-      <li class="done"><span class="ic">✓</span><div><b>Só dias de semana</b><br><span>Tarefa das 20h de segunda a sexta, desde 25/10.</span></div></li>
+      <li class="done"><span class="ic">✓</span><div><b>Várias tentativas por dia</b><br><span>A cada 2h, das 8h às 22h, todos os dias, desde 08/11. E-mail de erro só às 22h.</span></div></li>
+      <li class="done"><span class="ic">✓</span><div><b>Falhas que não derrubam mais o dia</b><br><span>Gmail fora do ar guarda o aviso pra próxima. Firefox que não abre cai no Chromium.</span></div></li>
       <li class="done"><span class="ic">✓</span><div><b>Login pelo seu Firefox ligado</b><br><span><code>NAVEGADOR=firefox-perfil</code> no seu <code>.env</code> desde 25/10.</span></div></li>
-      <li class="todo"><span class="ic"></span><div><b>Medir o seu Firefox nos dias de semana</b><br><span>Conferência marcada para segunda, 26/10, às 20h40. Depois, uma ou duas semanas de placar.</span></div></li>
-      <li class="todo"><span class="ic"></span><div><b>Decidir o plano B do captcha</b><br><span>Se o Firefox não ajudar: nova tentativa às 22h e um único e-mail de erro por dia.</span></div></li>
-      <li class="todo"><span class="ic"></span><div><b>Registro diário do login</b><br><span>Uma linha por execução, pra medir sem depender da memória.</span></div></li>
+      <li class="done"><span class="ic">✓</span><div><b>Registro de cada tentativa</b><br><span><code>historico.log</code>, uma linha por tentativa.</span></div></li>
+      <li class="todo"><span class="ic"></span><div><b>Medir duas semanas no formato novo</b><br><span>Quantos dias deram certo, em qual tentativa e quantas pediram captcha.</span></div></li>
+      <li class="todo"><span class="ic"></span><div><b>Conferir falta justificada</b><br><span>Ver no portal se alguma das disciplinas no limite tem falta justificada contada no total.</span></div></li>
     </ul>
   </section>
 
