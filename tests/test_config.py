@@ -40,3 +40,15 @@ def test_firefox_perfil(monkeypatch):
     monkeypatch.setenv("NAVEGADOR", "firefox-perfil")
     cfg = Config.carregar()
     assert cfg.navegador == "firefox-perfil" and cfg.perfil == "~/.monitor-faltas/perfil-firefox-real"
+
+
+def test_erro_so_na_ultima_tentativa(monkeypatch):
+    from datetime import datetime
+    from faltas.main import deve_avisar_erro
+    _base(monkeypatch)
+    monkeypatch.setenv("HORA_ULTIMA_TENTATIVA", "22")
+    cfg = Config.carregar()
+    assert not deve_avisar_erro(cfg, datetime(2026, 11, 9, 14, 0))
+    assert deve_avisar_erro(cfg, datetime(2026, 11, 9, 22, 5))
+    monkeypatch.delenv("HORA_ULTIMA_TENTATIVA")
+    assert deve_avisar_erro(Config.carregar(), datetime(2026, 11, 9, 8, 0))

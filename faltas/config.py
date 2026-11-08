@@ -64,6 +64,7 @@ class Config:
     headless: bool = True
     espera_captcha: int = 0
     uma_vez_por_dia: bool = False
+    hora_ultima_tentativa: int | None = None
     forcar: bool = False
     log_detalhado: bool = False
     pasta_saida: str = "site"
@@ -98,6 +99,8 @@ class Config:
             # com navegador visível dá tempo de a pessoa resolver o desafio de imagens
             espera_captcha=int(_env("ESPERA_CAPTCHA", "0" if headless else "240")),
             uma_vez_por_dia=_env("UMA_VEZ_POR_DIA", "0") == "1",
+            # com várias tentativas por dia, o e-mail de erro só sai a partir desta hora
+            hora_ultima_tentativa=int(_env("HORA_ULTIMA_TENTATIVA", "-1")) if _env("HORA_ULTIMA_TENTATIVA") else None,
             forcar=_env("FORCAR", "0") == "1",
             log_detalhado=_env("LOG_DETALHADO", "0") == "1",
             pasta_saida=_env("PASTA_SAIDA", "site"),

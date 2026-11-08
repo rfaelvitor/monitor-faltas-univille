@@ -206,6 +206,11 @@ def _saida_github(nome, valor):
             f.write(f"{nome}={valor}\n")
 
 
+def deve_avisar_erro(cfg, agora):
+    """Com várias tentativas por dia, só avisa o erro na última, pra não mandar e-mail à toa."""
+    return cfg.hora_ultima_tentativa is None or agora.hour >= cfg.hora_ultima_tentativa
+
+
 def _pode_avisar_erro_hoje():
     """No máximo um e-mail de erro por dia (o workflow pode tentar de hora em hora)."""
     marca = Path.home() / ".monitor-faltas" / "ultimo-erro.txt"
@@ -233,8 +238,10 @@ def main():
         traceback.print_exc()
         _saida_github("rodou", "false")
         try:
-            if _pode_avisar_erro_hoje():
-                cfg = Config.carregar()
+            cfg = Config.carregar()
+            if not deve_avisar_erro(cfg, datetime.now(FUSO)):
+                print(f"Erro, mas ainda vai tentar de novo hoje (e-mail de erro só a partir das {cfg.hora_ultima_tentativa}h)")
+            elif _pode_avisar_erro_hoje():
                 assunto, corpo = email_alerta.montar_erro(f"{type(e).__name__}: {e}")
                 email_alerta.enviar(cfg, assunto, corpo)
             else:
