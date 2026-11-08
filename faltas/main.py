@@ -1,4 +1,5 @@
 """Ponto de entrada: python -m faltas"""
+import contextlib
 import json
 import os
 import shutil
@@ -47,15 +48,24 @@ def carregar_estado_anterior(cfg):
         return None
 
 
+def abrir_navegador(cfg, pilha):
+    """Abre o navegador configurado. Se o Firefox nem abrir, usa o Chromium pra não perder a tentativa."""
+    if cfg.navegador != "firefox-perfil":
+        return pilha.enter_context(Portal(cfg.usuario, cfg.senha, headless=cfg.headless, espera_captcha=cfg.espera_captcha,
+                                          perfil=cfg.perfil, sessao=cfg.sessao, navegador=cfg.navegador))
+    from .portal_firefox import PortalFirefox
+    try:
+        return pilha.enter_context(PortalFirefox(cfg.usuario, cfg.senha, headless=cfg.headless, espera_captcha=cfg.espera_captcha,
+                                                 perfil=cfg.perfil, origem=cfg.perfil_origem))
+    except Exception as e:
+        print(f"Firefox não abriu ({type(e).__name__}: {str(e)[:150]}), tentando pelo Chromium")
+        return pilha.enter_context(Portal(cfg.usuario, cfg.senha, headless=cfg.headless, espera_captcha=cfg.espera_captcha,
+                                          perfil="~/.monitor-faltas/perfil" if cfg.perfil else None, navegador="chromium"))
+
+
 def coletar(cfg):
-    if cfg.navegador == "firefox-perfil":
-        from .portal_firefox import PortalFirefox
-        navegador = PortalFirefox(cfg.usuario, cfg.senha, headless=cfg.headless, espera_captcha=cfg.espera_captcha,
-                                  perfil=cfg.perfil, origem=cfg.perfil_origem)
-    else:
-        navegador = Portal(cfg.usuario, cfg.senha, headless=cfg.headless, espera_captcha=cfg.espera_captcha,
-                           perfil=cfg.perfil, sessao=cfg.sessao, navegador=cfg.navegador)
-    with navegador as portal:
+    with contextlib.ExitStack() as pilha:
+        portal = abrir_navegador(cfg, pilha)
         portal.login()
         disciplinas = parser.filtrar_semestre(parser.ler_disciplinas(portal.home()), cfg.semestre)
         if not disciplinas:

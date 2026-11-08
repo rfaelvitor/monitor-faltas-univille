@@ -46,11 +46,17 @@ $comum = @("run", "--python", "3.12", "--with-requirements", "requirements.txt",
 # NAVEGADOR=firefox no .env (ou na variavel de ambiente) troca o Chromium pelo Firefox do Playwright
 $nav = $env:NAVEGADOR
 if (-not $nav) { $m = Select-String -Path (Join-Path $base ".env") -Pattern "^NAVEGADOR=(.+)$" -ErrorAction SilentlyContinue; if ($m) { $nav = $m.Matches[0].Groups[1].Value.Trim() } }
-# firefox-perfil usa o Firefox instalado no Windows (Selenium), nao precisa baixar navegador
-if ($nav -ne "firefox-perfil") {
-    if ($nav -ne "firefox") { $nav = "chromium" }
-    Rodar ($comum + @("-m", "playwright", "install", $nav)) | Out-Null
-}
+# firefox-perfil usa o Firefox instalado (Selenium). O Chromium fica de reserva se o Firefox nao abrir
+if ($nav -ne "firefox") { $nav = "chromium" }
+Rodar ($comum + @("-m", "playwright", "install", $nav)) | Out-Null
 $saida = Rodar ($comum + @("-m", "faltas"))
 "=== fim, codigo de saida $saida ===" | Out-File $log -Append -Encoding utf8
+
+# uma linha por tentativa, porque o log acima e reescrito toda vez
+$linhas = Get-Content $log -Encoding utf8
+$resumo = if ($linhas -match "J. verificado hoje") { "ja verificado" }
+          elseif ($linhas -match "disciplinas verificadas") { "ok" + $(if ($linhas -match "Firefox n.o abriu") { " (pelo Chromium)" } else { "" }) + $(if ($linhas -match "depois do desafio") { " depois do captcha" } else { "" }) }
+          elseif ($linhas -match "DesafioCaptcha") { "captcha sem resposta" }
+          else { "erro: " + (($linhas | Where-Object { $_ -match "Error|Exception" } | Select-Object -Last 1) -replace "\s+", " ") }
+"$(Get-Date -Format 'yyyy-MM-dd HH:mm') | $resumo" | Out-File (Join-Path $base "logs\historico.log") -Append -Encoding utf8
 exit $saida

@@ -52,3 +52,34 @@ def test_erro_so_na_ultima_tentativa(monkeypatch):
     assert deve_avisar_erro(cfg, datetime(2026, 11, 9, 22, 5))
     monkeypatch.delenv("HORA_ULTIMA_TENTATIVA")
     assert deve_avisar_erro(Config.carregar(), datetime(2026, 11, 9, 8, 0))
+
+
+def test_firefox_que_nao_abre_cai_no_chromium(monkeypatch):
+    import contextlib
+    from faltas import main, portal_firefox
+
+    class Quebrado:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            raise RuntimeError("Process unexpectedly closed")
+
+        def __exit__(self, *a):
+            pass
+
+    class Falso(Quebrado):
+        def __init__(self, *a, **k):
+            self.k = k
+
+        def __enter__(self):
+            return self
+
+    monkeypatch.setattr(portal_firefox, "PortalFirefox", Quebrado)
+    monkeypatch.setattr(main, "Portal", Falso)
+    _base(monkeypatch)
+    monkeypatch.setenv("HEADLESS", "0")
+    monkeypatch.setenv("NAVEGADOR", "firefox-perfil")
+    with contextlib.ExitStack() as pilha:
+        p = main.abrir_navegador(Config.carregar(), pilha)
+    assert p.k["navegador"] == "chromium" and p.k["perfil"] == "~/.monitor-faltas/perfil"
